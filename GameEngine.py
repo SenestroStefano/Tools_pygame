@@ -441,12 +441,8 @@ AddSeconds
 
 """
 		if (self.__getSeconds() + value) >= 60 or (self.__getSeconds() + value) <= 0:
-			if value < 0:
-				parse_value = -0.99
-			else:
-				parse_value = +0.99
 
-			self.__minutes += int(value/60 + parse_value)
+			self.__minutes += int(value/60)
 			
 			m =  value//GE.getFps()
 
@@ -547,7 +543,7 @@ PrintLine
 - it's a pygame.font.render but easier to set
 
 """
-    def __init__(self, pos = None, text = "default text", alignment = "center", size = 25, font = 'freesansbold.ttf', color = "Green", backgroundcolor = None, showborder = False, bordercolor = "Black", borderwidth = 1):
+    def __init__(self, pos = None, defaultText = "default text", alignment = "center", size = 25, font = 'freesansbold.ttf', color = "Green", backgroundcolor = None, showborder = False, bordercolor = "Black", borderwidth = 1, showpoints=False, showcoords=False):
         """ 
 
 PrintLine
@@ -557,7 +553,7 @@ PrintLine
 
 """
         self.__pos = pos
-        self.__text = text
+        self.__text = defaultText
         self.__size = size * GE.getScreenMolt()
         self.__alignment = alignment
         self.__font = font
@@ -566,6 +562,8 @@ PrintLine
         self.__showborder = showborder
         self.__bordercolor = bordercolor
         self.__borderwidth = borderwidth * GE.getScreenMolt()
+        self.__showpoints = showpoints
+        self.__showcoords = showcoords
         
         if self.__pos == None: 
             self.__pos = GE.getScreenResolution()
@@ -573,22 +571,44 @@ PrintLine
         Error.Check(self.__pos, "PrintLine", 2)
         Error.Check(self.__pos, "PrintLine", 3)
         
+    def getPos(self):
+        return self.__pos
+
+    def Print(self, text = None):
+        
+        if text != None and type(text) == str: self.__text = text
         self.__Print()
 
     def __Print(self):
         import pygame
         text = pygame.font.Font(self.__font, self.__size).render((self.__text), True, self.__color, self.__bg)
         
+        point = self.__pos
         if self.__alignment == "center":
             self.__pos = (self.__pos[0]/2 - text.get_width()/2, self.__pos[1]/2 - text.get_height()/2)
+            point = (self.__pos[0] + text.get_width()/2, self.__pos[1] + text.get_height()/2)
         elif self.__alignment == "end":
             self.__pos = (self.__pos[0] + text.get_width()/2, self.__pos[1])
+            point = (self.__pos[0] + text.get_width(), self.__pos[1])
             
         GE.getScreen().blit(text, self.__pos)
         
         if self.__showborder:            
             pygame.draw.rect(GE.getScreen(), self.__bordercolor, pygame.Rect(self.__pos[0], self.__pos[1], text.get_width(), text.get_height()), self.__borderwidth)
 
+        if self.__showpoints:
+            pygame.draw.circle(GE.getScreen(), "Green", self.__pos, 5 * GE.getScreenMolt() * self.__size/36)
+            pygame.draw.circle(GE.getScreen(), "Blue", (self.__pos[0] + text.get_width(), self.__pos[1] + text.get_height()), 5 * GE.getScreenMolt() * self.__size/36)
+            pygame.draw.circle(GE.getScreen(), "Red", point, 3 * GE.getScreenMolt() * self.__size/36)
+            
+        if self.__showcoords:
+            
+            diff = 2
+            size = self.__size//diff
+            
+            coords = pygame.font.Font('freesansbold.ttf', size).render((str(self.getPos())), True, "Black")
+            GE.getScreen().blit(coords, (self.__pos[0] + text.get_width()/2 - coords.get_width()/2, self.__pos[1] - text.get_height()/1.6))
+        
 # DA RIVEDERE
 class Dialogue():
     """ 

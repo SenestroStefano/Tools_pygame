@@ -20,9 +20,12 @@ delta_time = Delta_Time
 
 )
 
+
 py.init()
 dialogo = ge.Dialogue()
-timer = ge.Timer(time = (0, 5), molt_sec = 1, myfunction = lambda: dialogo.Print("Bellaaaa"), color = "Red", reversed=False)
+
+var = "center"
+timer = ge.Timer(time = (5, 0), molt_sec = 1, color = "Red", reversed=False)
 
 while True:
         
@@ -38,5 +41,23 @@ while True:
     DEF.getScreen().fill((255, 255, 255))
     timer.Start()
     timer.Show()
+
+    if timer.CheckTime((0, 0)):
+        var = "center"
+    
+    if timer.CheckTime((0, 5)):
+        var = "start"
+        
+    if timer.CheckTime((0, 10)):
+        var = "end"
+        
+    if timer.CheckTime((0, 15)):
+        timer.AddSeconds(-15)
+    
+    ge.PrintLine(defaultText="Figataaa", pos=(900, 500), alignment=var, size=20, backgroundcolor="Black", color="White", showcoords=True).Print()
+    
+    if timer.IsOver():
+        dialogo.Print("Bellaaaa")
+        timer.AddSeconds(536)
     
     DEF.update()
