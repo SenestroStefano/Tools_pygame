@@ -543,7 +543,13 @@ PrintLine
 - it's a pygame.font.render but easier to set
 
 """
-    def __init__(self, pos = None, defaultText = "default text", alignment = "center", size = 25, font = 'freesansbold.ttf', color = "Green", backgroundcolor = None, showborder = False, bordercolor = "Black", borderwidth = 1, showpoints=False, showcoords=False):
+    def __init__(
+                self, 
+                pos = None, defaultText = "default text", alignment = "center", size = 25, 
+                font = 'freesansbold.ttf', color = "Green", backgroundcolor = None, colorshadow = None, shadowdistance = 2, bordercolor = "Black", borderwidth = 1, 
+                showborder = False, showpoints=False, showcoords=False
+                
+                ):
         """ 
 
 PrintLine
@@ -559,9 +565,11 @@ PrintLine
         self.__font = font
         self.__color = color
         self.__bg = backgroundcolor
-        self.__showborder = showborder
+        self.__colorshadow = colorshadow
+        self.__shadow_distance = shadowdistance
         self.__bordercolor = bordercolor
         self.__borderwidth = borderwidth * GE.getScreenMolt()
+        self.__showborder = showborder
         self.__showpoints = showpoints
         self.__showcoords = showcoords
         
@@ -591,6 +599,13 @@ PrintLine
             self.__pos = (self.__pos[0] + text.get_width()/2, self.__pos[1])
             point = (self.__pos[0] + text.get_width(), self.__pos[1])
             
+        
+        if type(self.__colorshadow) == str:
+            shadow = pygame.font.Font(self.__font, self.__size).render((self.__text), True, self.__colorshadow, self.__bg)
+            distance = self.__shadow_distance * GE.getScreenMolt()
+            
+            GE.getScreen().blit(shadow, (self.__pos[0], self.__pos[1] + self.__size*distance/100))
+        
         GE.getScreen().blit(text, self.__pos)
         
         if self.__showborder:            

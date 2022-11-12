@@ -54,7 +54,8 @@ while True:
     if timer.CheckTime((0, 15)):
         timer.AddSeconds(-15)
     
-    ge.PrintLine(defaultText="Figataaa", pos=(900, 500), alignment=var, size=20, backgroundcolor="Black", color="White", showcoords=True).Print()
+    ge.PrintLine(defaultText="Figataaa", alignment=var, size=120, color="Blue", colorshadow="Black", shadowdistance=4, showcoords=True).Print()
+    
     
     if timer.IsOver():
         dialogo.Print("Bellaaaa")
