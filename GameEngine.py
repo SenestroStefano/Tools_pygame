@@ -412,7 +412,7 @@ Timer
         self.__destroyfunctions = removeEvents
         self.__cicles = self.getTime()[0] * GE.getFps() * 60 + self.getTime()[1] * GE.getFps()
         self.__maxCicles = 0 if self.__reversed else (self.__max_min * GE.getFps() * 60 + self.__max_sec)
-  
+
         self.__CheckTimerText()
 
 
@@ -426,7 +426,7 @@ Timer
             self.__text1 = "0"
         else:
             self.__text1 = ""
-   
+
     def AddEvent(self, time: tuple, myfunction: classmethod):
         """ 
 
@@ -464,15 +464,15 @@ Start
         if self.__flag and not self.IsOver():
 
             if self.__reversed:
-       
+
                 self.__seconds -= self.__decrement
                 self.__cicles -= self.__decrement
-       
+
                 if self.__seconds <= 0:
                     self.__seconds = 60 * GE.getFps()
                     self.__minutes -= 1
             else:
-       
+
                 self.__seconds += self.__decrement
                 self.__cicles += self.__decrement
     
@@ -549,14 +549,14 @@ AddSeconds
             self.__minutes += int(secs/min + parse_value)
             
             # PROPORZIONE
-   
+
             # (secondi passati * Delta_Time) / totaleFPS --> per ottenere il moltiplicatore
             molt = int((secs * GE.getDelta_time()) / GE.getFps())
 
             # secondi passati - moltiplicatore * totale di sec in un minuto --> per ottenere i secondi da aggiungere al timer
             # (in caso rimanesse la somma sotto al minuto)
             var = secs - (molt * min)
-   
+
             # (secondi attuali + secondi da aggiungere) - totale sec in un minuto --> per settare i secondi al timer
             # (in caso la somma e' superiore al minuto)
             d = (self.__getSeconds() + var) - min
@@ -571,7 +571,7 @@ AddSeconds
     
         if self.__getSeconds() > min + 1:
             self.__seconds = 0
-   
+
         self.__CheckTimerText()
     
     def Stop(self):
@@ -598,13 +598,13 @@ Show
         text = pygame.font.Font(self.__font, self.__size).render((self.__text1+str(self.__minutes)+str(self.__text2)+str(int(self.__seconds/GE.getFps()))), True, self.__color)
         if self.__pos == None: self.__pos = (GE.getScreen().get_width()/2 - text.get_width()/2, 35 * GE.getScreenMolt())
         GE.getScreen().blit(text, self.__pos)
-  
+
     def ChangeTextColor(self, color):
         self.__color = color
-  
+
     def ChangeTextSize(self, size):
         self.__size = size * int(GE.getScreenMolt() + 0.9)
-  
+
     def ChangeTextFont(self, font):
         self.__font = font
 
@@ -824,7 +824,7 @@ Dialogue
         if type(background) == str: self.__background = hex2rgb(background)
 
         self.__rect = pygame.Rect(self.__pos[0], self.__pos[1], self.__wh[0], self.__wh[1])
-       
+
     def Print(self, text: str):
         """ 
 
