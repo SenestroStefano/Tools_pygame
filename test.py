@@ -2,6 +2,7 @@ import GameEngine as ge
 import pygame as py
 import sys
 
+
 Delta_Time = 1
 MULT = 2
 
@@ -21,44 +22,91 @@ delta_time = Delta_Time
 )
 
 
-py.init()
-dialogo = ge.Dialogue()
+def inizializza():
+    global mainloop
+    global showComands
+    global timer, dialogo, testo
+    
+    mainloop = True
 
-var = "center"
-timer = ge.Timer(time = (5, 0), molt_sec = 1, color = "Red", reversed=False)
+    showComands = True
+    
+    
+    dialogo = ge.Dialogue(updateFunction=render, background="#f6412e", colorshadow="Black", shadowdistance=4, size_char=20)
+    timer = ge.Timer(time = (0, 0), molt_sec = 1, color = "Red", reversed=True)
+    testo = ge.PrintLine(defaultText="Mammamia", size=20, color="Black")
 
-while True:
-        
-    for event in py.event.get():
-        
-        if event.type == py.QUIT:
-            sys.exit()
-            
-        if event.type == py.KEYDOWN:
-            if event.key == py.K_ESCAPE:
-                sys.exit()
+
+def render():
     
     DEF.getScreen().fill((255, 255, 255))
     timer.Start()
     timer.Show()
-
-    if timer.CheckTime((0, 0)):
-        var = "center"
+    testo.Print()
     
-    if timer.CheckTime((0, 5)):
-        var = "start"
-        
-    if timer.CheckTime((0, 10)):
-        var = "end"
-        
-    if timer.CheckTime((0, 15)):
-        timer.AddSeconds(-15)
     
-    ge.PrintLine(defaultText="Figataaa", alignment=var, size=120, color="Blue", colorshadow="Black", shadowdistance=4, showcoords=True).Print()
-    
+def conditions():
+    timer.AddEvent((9, 55), lambda: dialogo.Print("Nulla troppo figo per essere vero"))
     
     if timer.IsOver():
-        dialogo.Print("Bellaaaa")
-        timer.AddSeconds(536)
+        dialogo.Print("The big bang theory the best sitcom of the entire world... I love Sheldon Cooper")
+        timer.AddSeconds(538)
+        timer.DePause()
+
+def comands():
+    global mainloop
     
-    DEF.update()
+    def clicked(bool, key):
+        global showComands
+        key_holded = py.key.get_pressed().count(1)
+        key_pressed = py.key.name(key)
+        
+        # bool --> alzato/abbassato
+        if bool:
+            color = "Green"
+        else:
+            color = "Red"
+        
+        if showComands: testo.Print(key_pressed.upper()), testo.setColor(color)
+        
+        if key_pressed == "escape":
+            mainloop = not mainloop
+            
+        if key_pressed == "tab" and key_holded:
+            showComands = not showComands
+            testo.Print("Eh la madonna"), testo.setColor("Black")
+            
+        if key_pressed == "u" and key_holded:
+            dialogo.Print("Bella veramente")
+    
+    for event in py.event.get():
+            
+        if event.type == py.QUIT:
+            mainloop = not mainloop
+            
+        if event.type == py.KEYDOWN:
+            clicked(True, event.key)
+                
+        if event.type == py.KEYUP:
+            clicked(False, event.key)
+    
+
+def main():
+    global mainloop
+    
+    while mainloop:
+            
+        comands()
+        
+        render()
+        conditions()
+        
+                
+        DEF.update()
+        
+    sys.exit("\nSei uscito")
+    
+if __name__ == "__main__":
+    py.init()
+    inizializza()
+    main()

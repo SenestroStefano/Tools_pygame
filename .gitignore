@@ -1,4 +1,6 @@
 # file da ingnorare
 
 /__pycache__
+/.vscode
 /test.py
+/.pytest_cache

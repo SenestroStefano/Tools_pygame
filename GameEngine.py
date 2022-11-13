@@ -3,9 +3,48 @@
 --- Senex Module for Pygame ---
 
 - Every Functions need to be setted in a cicle loop
-- Thanks you for dowloading this file!
+- Thanks for dowloading this file!
 
 """
+
+
+def RGBToHex(r, g, b):
+    """
+
+RGB to Hex
+--------
+--------
+Args:
+    r (int): 0 <--> 255
+    g (int): 0 <--> 255
+    b (int): 0 <--> 255
+
+--------
+Returns:
+    str: #000000 <--> #FFFFFF
+"""
+    
+    return '#%02X%02X%02X' % (r, g, b)
+
+def hex2rgb(color):
+    """
+--------
+Hex to RGB
+--------
+--------
+Args:
+    color (str): #000000 <--> #FFFFFF
+
+--------
+Returns:
+    tuple[0:2]: int: 0 <--> 255
+"""
+    
+    
+    hex = color.lstrip('#')
+    rgb = tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
+    return rgb
+
 
 class Defaults():
     """ 
@@ -30,6 +69,12 @@ Make an instance of this class to allow this module to work properly
         global GE
         GE = self
         
+        def_name = "Defaults"
+        if GE == self:
+            import traceback
+            (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+            def_name = text[:text.find('=')].strip()
+            print("\033[94m {}\033[00m" .format("\r\n"+str(GE.__class__.__name__)+"() --> "+str(def_name)+" | class created correctly!"))
 
         try:
             a = screen_molt//1
@@ -39,14 +84,10 @@ Make an instance of this class to allow this module to work properly
             b = delta_time//1
         except:
             b = 1
-        Error.Check(Defaults, "Defaults", 0)
-        Error.Check(game_window, "Defaults", 1)
-        
-        if GE == self:
-            import traceback
-            (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
-            def_name = text[:text.find('=')].strip()
-            print("\033[94m {}\033[00m" .format("\r\n"+str(GE.__class__.__name__)+"() --> "+str(def_name)+" | class created correctly!"))
+            
+        # Errori
+        GE.__CheckErrors(Defaults, def_name, 0)
+        GE.__CheckErrors(game_window, def_name, 1)
         
         self.setScreen(game_window)
         self.setScreenResolution(window_resolution)
@@ -126,8 +167,8 @@ CheckTicks
     def getFps(self):
         return self.__fps
     
-    def setScreenMolt(self, screen_multiplayer: int):
-        self.__screen_molt = screen_multiplayer
+    def setScreenMolt(self, screen_multiplier: int):
+        self.__screen_molt = screen_multiplier
         
     def getScreenMolt(self):
         return self.__screen_molt
@@ -137,6 +178,22 @@ CheckTicks
         
     def getDelta_time(self):
         return self.__delta_time
+    
+    
+    def __CheckErrors(self, var, nameclass: str, type: int):
+        import sys
+        # ERRORS
+        
+        if type == 0:
+            try:
+                var
+            except ValueError:
+                sys.exit("\n"+"GameEngine | ValueRequired: You have to before make an istance of Defaults() to use correctly the engine")
+                
+        elif type == 1:
+            if not "Surface" in str(var):
+                sys.exit("\n"+str(nameclass)+" | ValueRequired: You have to set the Screen in Defaults() method")
+        
 
 
 class Do():
@@ -307,10 +364,10 @@ Infinite
         self.Start()
 
     def ActualState(self):
-        print("| Current Second: %d | Max Seconds: %d | Function: %s |" %(self.__min/self.__FPS[1], self.__max/self.__FPS, self.__function))
+        print("| Current Second: %d | Max Seconds: %d | Function: %s |" %(self.__min/self.__FPS, self.__max/self.__FPS, self.__function))
 
 class Timer():
-	""" 
+    """ 
 
 Timer
 ----------------------------------------------------------------------------------------
@@ -320,8 +377,8 @@ Timer
 - You have before to make an istance "otside every cicles"
 
 """
-	def __init__(self, time: tuple, molt_sec = 1,  myfunction = None, pos = None, size = 20, color = 'Black', font = 'freesansbold.ttf', reversed: bool = True, removeEvents: bool = True):
-		""" 
+    def __init__(self, time: tuple = (0, 0), molt_sec = 1,  myfunction = None, pos = None, size = 20, color = 'Black', font = 'freesansbold.ttf', reversed: bool = True, removeEvents: bool = True):
+        """ 
 
 Timer
 ----------------------------------------------------------------------------------------
@@ -331,45 +388,46 @@ Timer
 - You have before to make an istance "otside every cicles"
 
 """
-		self.__pos = pos
-		if pos != None and type(pos) == tuple: self.__pos = pos
+        self.__pos = pos
+        if pos != None and type(pos) == tuple: self.__pos = pos
 
-		self.__max_min = time[0]
-		self.__max_sec = time[1] * GE.getFps()
+        self.__max_min = time[0]
+        self.__max_sec = time[1] * GE.getFps()
 
-		self.setTime(0, 0)
-		if reversed:
-			self.setTime(time[0], time[1])
+        self.setTime(0, 0)
+        if reversed:
+            self.setTime(time[0], time[1])
+            if time[0] == 0 and time[1] == 0: self.setTime(time[0], 1)
 
-		self.__decrement = molt_sec
-		self.__mainfunction = myfunction
-		self.__flag = True
-		self.__color = color
-		self.__font = font
-		self.__size = size * int(GE.getScreenMolt())
-		self.__reversed = reversed
-		self.__do = Do()
-		self.__listfunctions = []
-		self.__destroyfunctions = removeEvents
-		self.__cicles = self.getTime()[0] * GE.getFps() * 60 + self.getTime()[1] * GE.getFps()
-		self.__maxCicles = 0 if self.__reversed else (self.__max_min * GE.getFps() * 60 + self.__max_sec)
+        self.__decrement = molt_sec
+        self.__mainfunction = myfunction
+        self.__flag = True
+        self.__color = color
+        self.__font = font
+        self.__size = size * int(GE.getScreenMolt() + 0.9)
+        self.__reversed = reversed
+        self.__do = Do()
+        self.__listfunctions = []
+        self.__destroyfunctions = removeEvents
+        self.__cicles = self.getTime()[0] * GE.getFps() * 60 + self.getTime()[1] * GE.getFps()
+        self.__maxCicles = 0 if self.__reversed else (self.__max_min * GE.getFps() * 60 + self.__max_sec)
   
-		self.__CheckTimerText()
+        self.__CheckTimerText()
 
 
-	def __CheckTimerText(self):
-		if self.__getSeconds() < 10:
-			self.__text2 = ":0"
-		else:
-			self.__text2 = ":"
+    def __CheckTimerText(self):
+        if self.__getSeconds() < 10:
+            self.__text2 = ":0"
+        else:
+            self.__text2 = ":"
 
-		if self.__getMinutes() < 10:
-			self.__text1 = "0"
-		else:
-			self.__text1 = ""
+        if self.__getMinutes() < 10:
+            self.__text1 = "0"
+        else:
+            self.__text1 = ""
    
-	def AddEvent(self, time: tuple, myfunction: classmethod):
-		""" 
+    def AddEvent(self, time: tuple, myfunction: classmethod):
+        """ 
 
 AddEvent
 ----------------------------------------------------------------------------------------
@@ -377,10 +435,10 @@ AddEvent
 - Add a function in a selected period of time
 
 """
-		if not (time, myfunction) in self.__listfunctions: self.__listfunctions.append((time, myfunction))
+        if not (time, myfunction) in self.__listfunctions: self.__listfunctions.append((time, myfunction))
 
-	def Start(self):
-		""" 
+    def Start(self):
+        """ 
 
 Start
 ----------------------------------------------------------------------------------------
@@ -389,42 +447,47 @@ Start
 
 """
 
-		for event in self.__listfunctions:
-			if self.getTime() == event[0]:
-				self.AddSeconds(-1)
-				event[1]()
+        for event in self.__listfunctions:
+            if self.getTime() == event[0]:
+                try:
+                    self.__do.Once(lambda: event[1]())
+                except RecursionError:
+                    pass
+                
+                try:
+                    if self.__destroyfunctions:
+                        self.__listfunctions.pop(self.__listfunctions.index(event))
+                except ValueError:
+                    pass
+
+        if self.__flag and not self.IsOver():
+
+            if self.__reversed:
+       
+                self.__seconds -= self.__decrement
+                self.__cicles -= self.__decrement
+       
+                if self.__seconds <= 0:
+                    self.__seconds = 60 * GE.getFps()
+                    self.__minutes -= 1
+            else:
+       
+                self.__seconds += self.__decrement
+                self.__cicles += self.__decrement
     
-				if self.__destroyfunctions:
-					self.__listfunctions.pop(self.__listfunctions.index(event))
-
-		if self.__flag and not self.IsOver():
-
-			if self.__reversed:
-       
-				self.__seconds -= self.__decrement
-				self.__cicles -= self.__decrement
-       
-				if self.__seconds <= 0:
-					self.__seconds = 60 * GE.getFps()
-					self.__minutes -= 1
-			else:
-       
-				self.__seconds += self.__decrement
-				self.__cicles += self.__decrement
-    
-				if self.__seconds > 60 * GE.getFps():
-					self.__seconds = 0
-					self.__minutes += 1
+                if self.__seconds > 60 * GE.getFps():
+                    self.__seconds = 0
+                    self.__minutes += 1
 
 
-			self.__CheckTimerText()
+            self.__CheckTimerText()
 
-		else:
-			if self.__mainfunction != None: self.__do.Once(self.__mainfunction)
-			self.Pause()
+        else:
+            if self.__mainfunction != None: self.__do.Once(self.__mainfunction)
+            self.Pause()
 
-	def ReStart(self):
-		""" 
+    def ReStart(self):
+        """ 
 
 Restart
 ----------------------------------------------------------------------------------------
@@ -432,12 +495,12 @@ Restart
 - To Restart the timer once it would be off
 
 """
-		if not self.__flag:
-			self.__flag = True
-			self.__minutes = self.__max_min
+        if not self.__flag:
+            self.__flag = True
+            self.__minutes = self.__max_min
 
-	def Pause(self):
-		""" 
+    def Pause(self):
+        """ 
 
 Pause
 ----------------------------------------------------------------------------------------
@@ -445,10 +508,10 @@ Pause
 - To set it a pause mode
 
 """
-		self.__flag = False
+        self.__flag = False
 
-	def DePause(self):
-		""" 
+    def DePause(self):
+        """ 
 
 Depause
 ----------------------------------------------------------------------------------------
@@ -456,10 +519,10 @@ Depause
 - To set it a depause mode, so to continue
 
 """
-		self.__flag = True
+        self.__flag = True
 
-	def AddSeconds(self, secs):
-		""" 
+    def AddSeconds(self, secs):
+        """ 
 
 AddSeconds
 ----------------------------------------------------------------------------------------
@@ -469,46 +532,49 @@ AddSeconds
 
 """     
 
+        # Ripristino il DO()
+        
+        self.__do = Do()
+        min = 60
+        tot = round(self.__getSeconds() + secs, 3)
 
+        if tot >= min or tot < 0:
+            
+            if secs < 0:
+                parse_value = -0.999
+            else:
+                parse_value = +0.999
 
-		min = 60
-		tot = round(self.__getSeconds() + secs, 3)
-
-		if tot >= min or tot < 0:
-			
-			if secs < 0:
-				parse_value = -0.999
-			else:
-				parse_value = +0.999
-
-			self.__minutes += int(secs/min + parse_value)
-			
-			# PROPORZIONE
+            self.__minutes += int(secs/min + parse_value)
+            
+            # PROPORZIONE
    
-			# (secondi passati * Delta_Time) / totaleFPS --> per ottenere il moltiplicatore
-			molt = int((secs * GE.getDelta_time()) / GE.getFps())
+            # (secondi passati * Delta_Time) / totaleFPS --> per ottenere il moltiplicatore
+            molt = int((secs * GE.getDelta_time()) / GE.getFps())
 
-			# secondi passati - moltiplicatore * totale di sec in un minuto --> per ottenere i secondi da aggiungere al timer
-			# (in caso rimanesse la somma sotto al minuto)
-			var = secs - (molt * min)
+            # secondi passati - moltiplicatore * totale di sec in un minuto --> per ottenere i secondi da aggiungere al timer
+            # (in caso rimanesse la somma sotto al minuto)
+            var = secs - (molt * min)
    
-			# (secondi attuali + secondi da aggiungere) - totale sec in un minuto --> per settare i secondi al timer
-			# (in caso la somma e' superiore al minuto)
-			d = (self.__getSeconds() + var) - min
-			
-			self.__seconds += var * GE.getFps()
+            # (secondi attuali + secondi da aggiungere) - totale sec in un minuto --> per settare i secondi al timer
+            # (in caso la somma e' superiore al minuto)
+            d = (self.__getSeconds() + var) - min
+            
+            self.__seconds += var * GE.getFps()
 
-			if self.__getSeconds() > min:
-				self.__seconds = d * GE.getFps()
+            if self.__getSeconds() > min:
+                self.__seconds = d * GE.getFps()
     
-		else:
-			self.__seconds += secs * GE.getFps()
-	
-		if self.__getSeconds() > min + 1:
-			self.__seconds = 0
-	
-	def Stop(self):
-		""" 
+        else:
+            self.__seconds += secs * GE.getFps()
+    
+        if self.__getSeconds() > min + 1:
+            self.__seconds = 0
+   
+        self.__CheckTimerText()
+    
+    def Stop(self):
+        """ 
 
 Stop
 ----------------------------------------------------------------------------------------
@@ -516,10 +582,10 @@ Stop
 - To stop the timer, it will be start by the default value
 
 """
-		self.__init__(self.__max_sec, self.__molt_sec, self.__mainfunction)
+        self.__init__(self.__max_sec, self.__molt_sec, self.__mainfunction)
 
-	def Show(self):
-		""" 
+    def Show(self):
+        """ 
 
 Show
 ----------------------------------------------------------------------------------------
@@ -527,36 +593,36 @@ Show
 - To show the timer as a pygame.font.render on game window
 
 """
-		import pygame
-		text = pygame.font.Font(self.__font, self.__size).render((self.__text1+str(self.__minutes)+str(self.__text2)+str(int(self.__seconds/GE.getFps()))), True, self.__color)
-		if self.__pos == None: self.__pos = (GE.getScreen().get_width()/2 - text.get_width()/2, 35 * GE.getScreenMolt())
-		GE.getScreen().blit(text, self.__pos)
+        import pygame
+        text = pygame.font.Font(self.__font, self.__size).render((self.__text1+str(self.__minutes)+str(self.__text2)+str(int(self.__seconds/GE.getFps()))), True, self.__color)
+        if self.__pos == None: self.__pos = (GE.getScreen().get_width()/2 - text.get_width()/2, 35 * GE.getScreenMolt())
+        GE.getScreen().blit(text, self.__pos)
   
-	def ChangeTextColor(self, color):
-		self.__color = color
+    def ChangeTextColor(self, color):
+        self.__color = color
   
-	def ChangeTextSize(self, size):
-		self.__size = size * int(GE.getScreenMolt())
+    def ChangeTextSize(self, size):
+        self.__size = size * int(GE.getScreenMolt() + 0.9)
   
-	def ChangeTextFont(self, font):
-		self.__font = font
+    def ChangeTextFont(self, font):
+        self.__font = font
 
-	def __getSeconds(self):
-		return round(self.__seconds / GE.getFps(), 2)
-    	
-	def __getMinutes(self):
-		return self.__minutes
-
-	def IsOver(self):
-		if self.__reversed:
-			if not int(self.__getMinutes()) and not int(self.__getSeconds()): return True 
-			else: return False
-		else:
-			if int(self.__getMinutes()) == self.__max_min and int(self.__getSeconds()) == (self.__max_sec // GE.getFps()): return True 
-			else: return False
+    def __getSeconds(self):
+        return round(self.__seconds / GE.getFps(), 2)
         
-	def getTime(self):
-		""" 
+    def __getMinutes(self):
+        return self.__minutes
+
+    def IsOver(self):
+        if self.__reversed:
+            if not int(self.__getMinutes()) and not int(self.__getSeconds()): return True 
+            else: return False
+        else:
+            if int(self.__getMinutes()) == self.__max_min and int(self.__getSeconds()) == (self.__max_sec // GE.getFps()): return True 
+            else: return False
+        
+    def getTime(self):
+        """ 
 
 getTime
 ----------------------------------------------------------------------------------------
@@ -565,10 +631,10 @@ getTime
 - (minutes: int, seconds: int)
 
 """
-		return (int(self.__getMinutes()), int(self.__getSeconds()))
+        return (int(self.__getMinutes()), int(self.__getSeconds()))
 
-	def setTime(self, minutes: int = None, seconds: int = None):
-		""" 
+    def setTime(self, minutes: int = None, seconds: int = None):
+        """ 
 
 setTime
 ----------------------------------------------------------------------------------------
@@ -577,11 +643,11 @@ setTime
 - minutes: int, seconds: int
 
 """
-		if minutes != None and type(minutes) == int: self.__minutes = minutes
-		if seconds != None and type(seconds) == int: self.__seconds = seconds * GE.getFps()
+        if minutes != None and type(minutes) == int: self.__minutes = minutes
+        if seconds != None and type(seconds) == int: self.__seconds = seconds * GE.getFps()
 
-	def CheckTime(self, v: tuple = (0, 0)):
-		""" 
+    def CheckTime(self, v: tuple = (0, 0)):
+        """ 
 
 CheckTime
 ----------------------------------------------------------------------------------------
@@ -591,11 +657,11 @@ CheckTime
 - Returns True/False
 
 """
-		return True if self.getTime() == v else False
+        return True if self.getTime() == v else False
 
-	def ActualState(self):
-		if self.__flag:
-			print("| Current Tick: %d | Function Tick: %d | Function: %s |" %(self.__cicles, self.__maxCicles, self.__mainfunction))
+    def ActualState(self):
+        if self.__flag:
+            print("| Current Tick: %d | Function Tick: %d | Function: %s |" %(self.__cicles, self.__maxCicles, self.__mainfunction))
 
 class PrintLine():
     """ 
@@ -623,7 +689,7 @@ PrintLine
 """
         self.__pos = pos
         self.__text = defaultText
-        self.__size = size * GE.getScreenMolt()
+        self.__size = size * int(GE.getScreenMolt() + 0.9)
         self.__alignment = alignment
         self.__font = font
         self.__color = color
@@ -631,19 +697,26 @@ PrintLine
         self.__colorshadow = colorshadow
         self.__shadow_distance = shadowdistance
         self.__bordercolor = bordercolor
-        self.__borderwidth = borderwidth * GE.getScreenMolt()
+        self.__borderwidth = borderwidth * int(GE.getScreenMolt() + 0.9)
         self.__showborder = showborder
         self.__showpoints = showpoints
         self.__showcoords = showcoords
         
         if self.__pos == None: 
             self.__pos = GE.getScreenResolution()
-            
-        Error.Check(self.__pos, "PrintLine", 2)
-        Error.Check(self.__pos, "PrintLine", 3)
         
+    
+    def setPos(self, pos: tuple = (0, 0)):
+        self.__pos = pos
+    
     def getPos(self):
         return self.__pos
+    
+    def setColor(self, color):
+        self.__color = color
+        
+    def getColor(self):
+        return self.__color
 
     def Print(self, text = None):
         
@@ -654,12 +727,13 @@ PrintLine
         import pygame
         text = pygame.font.Font(self.__font, self.__size).render((self.__text), True, self.__color, self.__bg)
         
+        position = self.__pos
         point = self.__pos
         if self.__alignment == "center":
-            self.__pos = (self.__pos[0]/2 - text.get_width()/2, self.__pos[1]/2 - text.get_height()/2)
+            position = (self.__pos[0]/2 - text.get_width()/2, self.__pos[1]/2 - text.get_height()/2)
             point = (self.__pos[0] + text.get_width()/2, self.__pos[1] + text.get_height()/2)
         elif self.__alignment == "end":
-            self.__pos = (self.__pos[0] + text.get_width()/2, self.__pos[1])
+            position = (self.__pos[0] + text.get_width()/2, self.__pos[1])
             point = (self.__pos[0] + text.get_width(), self.__pos[1])
             
         
@@ -667,16 +741,16 @@ PrintLine
             shadow = pygame.font.Font(self.__font, self.__size).render((self.__text), True, self.__colorshadow, self.__bg)
             distance = self.__shadow_distance * GE.getScreenMolt()
             
-            GE.getScreen().blit(shadow, (self.__pos[0], self.__pos[1] + self.__size*distance/100))
+            GE.getScreen().blit(shadow, (position[0], position[1] + self.__size*distance/100))
         
-        GE.getScreen().blit(text, self.__pos)
+        GE.getScreen().blit(text, position)
         
         if self.__showborder:            
-            pygame.draw.rect(GE.getScreen(), self.__bordercolor, pygame.Rect(self.__pos[0], self.__pos[1], text.get_width(), text.get_height()), self.__borderwidth)
+            pygame.draw.rect(GE.getScreen(), self.__bordercolor, pygame.Rect(position[0], position[1], text.get_width(), text.get_height()), self.__borderwidth)
 
         if self.__showpoints:
-            pygame.draw.circle(GE.getScreen(), "Green", self.__pos, 5 * GE.getScreenMolt() * self.__size/36)
-            pygame.draw.circle(GE.getScreen(), "Blue", (self.__pos[0] + text.get_width(), self.__pos[1] + text.get_height()), 5 * GE.getScreenMolt() * self.__size/36)
+            pygame.draw.circle(GE.getScreen(), "Green", position, 5 * GE.getScreenMolt() * self.__size/36)
+            pygame.draw.circle(GE.getScreen(), "Blue", (position[0] + text.get_width(), position[1] + text.get_height()), 5 * GE.getScreenMolt() * self.__size/36)
             pygame.draw.circle(GE.getScreen(), "Red", point, 3 * GE.getScreenMolt() * self.__size/36)
             
         if self.__showcoords:
@@ -684,10 +758,15 @@ PrintLine
             diff = 2
             size = self.__size//diff
             
-            coords = pygame.font.Font('freesansbold.ttf', size).render((str(self.getPos())), True, "Black")
+            pos = (self.getPos()[0]//GE.getScreenMolt(), self.getPos()[1]//GE.getScreenMolt())
+            dim  = (text.get_size()[0]//GE.getScreenMolt(), text.get_size()[1]//GE.getScreenMolt())
             
-            pygame.draw.circle(GE.getScreen(), "Black", self.__pos, 3 * GE.getScreenMolt() * self.__size/40)
-            GE.getScreen().blit(coords, (self.__pos[0] + text.get_width()/2 - coords.get_width()/2, self.__pos[1] - text.get_height()/1.6))
+            coords = pygame.font.Font('freesansbold.ttf', size).render("pos: "+str(pos), True, "Black")
+            dimensions = pygame.font.Font('freesansbold.ttf', size).render("dim: "+str(dim), True, "#383838")
+            
+            pygame.draw.circle(GE.getScreen(), "Black", position, 3 * GE.getScreenMolt() * self.__size/40)
+            GE.getScreen().blit(coords, (position[0] + text.get_width()/2 - coords.get_width()/2, position[1] - text.get_height()/1.6))
+            GE.getScreen().blit(dimensions, (position[0] + text.get_width()/2 - dimensions.get_width()/2, position[1] + text.get_height()*1.2))
         
 # DA RIVEDERE
 class Dialogue():
@@ -702,7 +781,7 @@ Dialogue
 - You are free to change text when you want with Print() method
 
 """
-    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, show_flashing = True, size_char = 14, default_text = "This is an example of Dialogue", text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, update = None):
+    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, show_flashing = True, size_char = 14, default_text = "This is an example of Dialogue", text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None):
         import pygame        
         """ 
 
@@ -731,7 +810,7 @@ Dialogue
         self.__delay = 0
         self.__charmin = 20
         self.__charlimit = 0
-        self.__update_funct = update
+        self.__update_funct = updateFunction
         self.__finished = False
         self.__flag = False
         self.__sizechar = size_char
@@ -739,14 +818,9 @@ Dialogue
         self.__flag_flash = False
         self.__shadows = (colorshadow, shadowdistance)
         self.__debug = debug
-        
-        Error.Check(self.__pos, "Dialogue", 2)
-        Error.Check(self.__wh, "Dialogue", 3)
-        Error.Check(self.__text_color, "Dialogue", 3)
-        
         self.__distancex, self.__distancey = 25 * GE.getScreenMolt(), 5 * GE.getScreenMolt()
-
-
+        
+        if type(background) == str: self.__background = hex2rgb(background)
 
         self.__rect = pygame.Rect(self.__pos[0], self.__pos[1], self.__wh[0], self.__wh[1])
        
@@ -816,8 +890,8 @@ Print
 
     def __PrintBG(self):
         import pygame
-        pygame.draw.rect(GE.getScreen(), self.__background, self.__rect, 0, 4 * GE.getScreenMolt())
-        pygame.draw.rect(GE.getScreen(), tuple(map(lambda i, j: abs(i - j), self.__background, self.__dark)), self.__rect, 2 * GE.getScreenMolt(), 4 * GE.getScreenMolt())
+        pygame.draw.rect(GE.getScreen(), self.__background, self.__rect, 0, 4 * int(GE.getScreenMolt() + 0.9))
+        pygame.draw.rect(GE.getScreen(), tuple(map(lambda i, j: abs(i - j), self.__background, self.__dark)), self.__rect, 2 * int(GE.getScreenMolt() + 0.9), 4 * int(GE.getScreenMolt() + 0.9))
         
         chiaro = (255 - self.__background[0], 255 - self.__background[1], 255 - self.__background[2])
         
@@ -834,7 +908,7 @@ Print
         
         if self.__show_flashing and self.__flag_flash:
             pygame.draw.polygon(GE.getScreen(), tuple(map(lambda i, j: i + j//1.2, self.__background, chiaro)), pos)
-            pygame.draw.polygon(GE.getScreen(), tuple(map(lambda i, j: i + j//1.6, chiaro_tri, chiaro)), pos, 2 * GE.getScreenMolt())
+            pygame.draw.polygon(GE.getScreen(), tuple(map(lambda i, j: i + j//1.6, chiaro_tri, chiaro)), pos, 2 * int(GE.getScreenMolt() + 0.9))
         
         self.__PrintTX()
 
@@ -847,7 +921,7 @@ Print
         val = len(self.__text)//self.__charmin+1
         pr = g//val
         
-        self.__charlimit = (self.__charmin * pr * GE.getScreenResolution()[0] * self.__wh[0]) // 2000000
+        self.__charlimit = (self.__charmin * pr)
         
         val = len(self.__text)//self.__charlimit+1
         pr = (g//val) + 4
@@ -883,49 +957,6 @@ Print
         
             if len(text_passed) == len(self.__text):
                 self.__flag = True
-
-
-# CLASSI PUBBLICHE
-def __classi():
-    global Error
-    Error = __Errors()
-
-
-class __Errors():
-    def Check(self, var, nameclass: str, type: int):
-        import sys, pygame
-        # ERRORS
-        
-        if type == 0:
-            try:
-                var
-            except ValueError:
-                sys.exit("\n"+"GameEngine | ValueRequired: You have to before make an istance of Defaults() to use correctly the engine")
-                
-        elif type == 1:
-            if not "Surface" in str(var):
-                sys.exit("\n"+str(nameclass)+" | ValueRequired: You have to set the Screen in Defaults() method")
-        
-        elif type == 2:
-            if len(var) < 1:
-                sys.exit("\n"+str(nameclass)+" | ValueError: invalid argument! it must be a "+str(tuple)+", you put a "+str(var))
-                
-        elif type == 3:
-            if len(var) < 2:
-                sys.exit("\n"+str(nameclass)+" | IndexError: invalid argument! it must be long 3, you put "+str(len(var)))
-                
-        elif type == 4:
-            if len(var) == 2:
-                sys.exit("\n"+str(nameclass)+" | IndexError: invalid argument! it must be long 2, you put "+str(len(var)))
-                
-        elif type == 5:
-            if type(var) != int:
-                sys.exit("\n"+str(nameclass)+" | ValueError: invalid argument! it must be a "+str(int)+", you put a "+str(type(var)))
-
-
-
-__classi()
-
 
 
 def __testa():
