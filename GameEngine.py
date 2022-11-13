@@ -43,7 +43,10 @@ Make an instance of this class to allow this module to work properly
         Error.Check(game_window, "Defaults", 1)
         
         if GE == self:
-            print("\033[94m {}\033[00m" .format("\rDefault() class created correctly!"))
+            import traceback
+            (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+            def_name = text[:text.find('=')].strip()
+            print("\033[94m {}\033[00m" .format("\r\n"+str(GE.__class__.__name__)+"() --> "+str(def_name)+" | class created correctly!"))
         
         self.setScreen(game_window)
         self.setScreenResolution(window_resolution)
