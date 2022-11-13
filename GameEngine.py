@@ -7,6 +7,7 @@
 
 """
 
+#TO DO add Player Component
 
 def RGBToHex(r, g, b):
     """
@@ -958,5 +959,5 @@ Print
             if len(text_passed) == len(self.__text):
                 self.__flag = True
 
-
-print("\033[96m {}\033[00m" .format("\r\nGameEngine 1.0 - Created by Senex03 || Welcome!!"))
+if __name__ != "__main__":
+    print("\033[96m {}\033[00m" .format("\r\nGameEngine 1.0 - Created by Senex03 || Welcome!!"))
