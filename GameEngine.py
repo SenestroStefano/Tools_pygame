@@ -1,6 +1,6 @@
 """
 
---- Senex Module for Pygame ---
+## Senex Module for Pygame
 
 - Every Functions need to be setted in a cicle loop
 - Thanks for dowloading this file!
@@ -12,16 +12,15 @@
 def RGBToHex(r, g, b):
     """
 
-RGB to Hex
+# RGB to Hex
 --------
---------
-Args:
+## Args:
     r (int): 0 <--> 255
     g (int): 0 <--> 255
     b (int): 0 <--> 255
 
 --------
-Returns:
+### Returns:
     str: #000000 <--> #FFFFFF
 """
     
@@ -29,15 +28,13 @@ Returns:
 
 def hex2rgb(color):
     """
+# Hex to RGB
 --------
-Hex to RGB
---------
---------
-Args:
+## Args:
     color (str): #000000 <--> #FFFFFF
 
 --------
-Returns:
+### Returns:
     tuple[0:2]: int: 0 <--> 255
 """
     
@@ -46,23 +43,38 @@ Returns:
     rgb = tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
     return rgb
 
+def colored(color, text):
+    """
+# Colored
+--------
+
+--------
+### Returns:
+    colored str
+"""
+
+
+    import matplotlib.colors as mcol
+    
+    rgb = mcol.to_hex(color) if color in mcol.cnames.keys() or type(color) != tuple else color
+    if type(rgb) != tuple: rgb = hex2rgb(rgb)
+    
+    return "\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(rgb[0], rgb[1], rgb[2], text)
 
 class Defaults():
-    """ 
---------       
-Defaults
+    """       
+# Defaults
 --------        
-Make an instance of this class to allow this module to work properly
+### Make an instance of this class to allow this module to work properly
 
 ----------------------------------------------------------------------------------------
 - easy way to access a very common used function of pygame"""
     
-    def __init__(self, game_window: classmethod, window_resolution: tuple, fps: int, screen_molt = 1, delta_time = 1):
-        """ 
---------       
-Defaults
+    def __init__(self, window_resolution: tuple, fps: int, screen_molt = 1, delta_time = 1):
+        """       
+# Defaults
 --------        
-Make an instance of this class to allow this module to work properly
+### Make an instance of this class to allow this module to work properly
 
 ----------------------------------------------------------------------------------------
 - easy way to access a very common used function of pygame"""
@@ -72,11 +84,15 @@ Make an instance of this class to allow this module to work properly
         
         def_name = "Defaults"
         if GE == self:
-            import traceback
+            import traceback, pygame
             (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
             def_name = text[:text.find('=')].strip()
-            print("\033[94m {}\033[00m" .format("\r\n"+str(GE.__class__.__name__)+"() --> "+str(def_name)+" | class created correctly!"))
-
+            print(colored(("#7ccbaa"), "\n"+str(GE.__class__.__name__)+"() --> "+str(def_name)+" | class created correctly!\n"))
+            pygame.init()
+            
+            print(colored(("#53754d"), "____________\n"))
+            print(colored(("#53754d"), "DEBUG: \n\n"))
+            
         try:
             a = screen_molt//1
         except:
@@ -88,14 +104,14 @@ Make an instance of this class to allow this module to work properly
             
         # Errori
         GE.__CheckErrors(Defaults, def_name, 0)
-        GE.__CheckErrors(game_window, def_name, 1)
+        GE.__CheckErrors(window_resolution, def_name, 1)
         
-        self.setScreen(game_window)
-        self.setScreenResolution(window_resolution)
-        self.setFps(fps)
         self.setScreenMolt(a)
         self.setDelta_time(b)
+        self.setScreenResolution(window_resolution)
+        self.setFps(fps)
         self.__Ticks = 0
+        self.__dfWH = (0, 0)
         
     def getClock(self):
         import pygame
@@ -107,8 +123,7 @@ Make an instance of this class to allow this module to work properly
     def update(self):
         """ 
 
-Update
-----------------------------------------------------------------------------------------
+# Update
 ----------------------------------------------------------------------------------------
 - Used to update the screen
 
@@ -134,13 +149,14 @@ Update
     def CheckTicks(self, milliseconds: float):
         """ 
 
-CheckTicks
-----------------------------------------------------------------------------------------
+# CheckTicks
 ----------------------------------------------------------------------------------------
 - It's a way to have an infinite counter and ripetitive
-- Return True/False
 
-        if Ticks / everyMillesec % 1 == 0 :
+----------------------------------------------------------------------------------------
+### - Return: True/False
+
+        IF Ticks / everyMillesec % 1 == 0 :
             return True
         return False
 
@@ -149,15 +165,29 @@ CheckTicks
         if round(self.getTicks()/milliseconds, 2) % 1 == 0:
             return True
         return False
-        
-    def setScreen(self, pygame_display_screen: classmethod):
-        self.__game_window = pygame_display_screen
-        
+    
+    def setScreen(self, resolution):
+        import pygame
+        self.__game_window = pygame.display.set_mode(resolution)
+    
     def getScreen(self):
         return self.__game_window
         
     def setScreenResolution(self, pygame_display_screen_mode: tuple):
-        self.__window_resolution = pygame_display_screen_mode
+        import pygame
+        
+        self.__dfWH = pygame.display.Info().current_w, pygame.display.Info().current_h
+        
+        var = pygame_display_screen_mode
+        
+        if pygame_display_screen_mode <= self.__dfWH:
+            var = self.__dfWH
+            old_screen_res = (pygame_display_screen_mode[0] / self.getScreenMolt() + pygame_display_screen_mode[1] / self.getScreenMolt()) / 2
+            screen_res = (self.__dfWH[0] / old_screen_res + self.__dfWH[1] / old_screen_res)//2
+            self.setScreenMolt(screen_res)
+        
+        self.__window_resolution = var
+        self.setScreen(self.__window_resolution)
         
     def getScreenResolution(self):
         return self.__window_resolution
@@ -181,27 +211,25 @@ CheckTicks
         return self.__delta_time
     
     
-    def __CheckErrors(self, var, nameclass: str, type: int):
+    def __CheckErrors(self, var, nameclass: str, tipo: int):
         import sys
         # ERRORS
         
-        if type == 0:
+        if tipo == 0:
             try:
                 var
             except ValueError:
-                sys.exit("\n"+"GameEngine | ValueRequired: You have to before make an istance of Defaults() to use correctly the engine")
+                sys.exit(colored("#ff0000","\n"+"GameEngine | ValueRequired: You have to before make an istance of Defaults() to use correctly the engine"))
                 
-        elif type == 1:
-            if not "Surface" in str(var):
-                sys.exit("\n"+str(nameclass)+" | ValueRequired: You have to set the Screen in Defaults() method")
+        elif tipo == 1:
+            if type(var) != tuple:
+                sys.exit(colored("#ff0000","\n"+str(nameclass)+" | ValueRequired: You have to set the Screen in Defaults() method"))
         
-
 
 class Do():
     """ 
 
-DO
-----------------------------------------------------------------------------------------
+# DO
 ----------------------------------------------------------------------------------------
 - Repeats a part of your code, tot times (specificated)
 - You have before to make an istance "otside every cicles"
@@ -210,8 +238,7 @@ DO
     def __init__(self):
         """ 
 
-DO
-----------------------------------------------------------------------------------------
+# DO
 ----------------------------------------------------------------------------------------
 - Repeats a part of your code, tot times (specificated)
 - You have before to make an istance "otside every cicles"
@@ -222,8 +249,7 @@ DO
     def Once(self, myfunction = None):
         """ 
 
-Once
-----------------------------------------------------------------------------------------
+# Once
 ----------------------------------------------------------------------------------------
 - One time per your entire code and then it stops
 
@@ -233,8 +259,7 @@ Once
     def Times(self, myfunction = None, times = 2):
         """ 
 
-Times
-----------------------------------------------------------------------------------------
+# Times
 ----------------------------------------------------------------------------------------
 - Tot times per your entire code and then it stops
 
@@ -248,8 +273,7 @@ Times
 class Flip_Flop():
     """ 
 
-Flip_Flop
-----------------------------------------------------------------------------------------
+# Flip_Flop
 ----------------------------------------------------------------------------------------
 - Repeats a part of your code, ON/OFF per times (specificated)
 - You have before to make an istance "otside every cicles"
@@ -258,8 +282,7 @@ Flip_Flop
     def __init__(self):
         """ 
 
-Flip_Flop
-----------------------------------------------------------------------------------------
+# Flip_Flop
 ----------------------------------------------------------------------------------------
 - Repeats a part of your code, ON/OFF per times (specificated)
 - You have before to make an istance "otside every cicles"
@@ -271,8 +294,7 @@ Flip_Flop
     def AfterOnce(self, myfunction = None):
         """ 
 
-AfterOnce
-----------------------------------------------------------------------------------------
+# AfterOnce
 ----------------------------------------------------------------------------------------
 - One time is ON and then OFF
 
@@ -282,8 +304,7 @@ AfterOnce
     def AfterTimes(self, myfunction = None,  times = 2):
         """ 
 
-AfterOnce
-----------------------------------------------------------------------------------------
+# AfterOnce
 ----------------------------------------------------------------------------------------
 - Tot times specificated is on state ON and then OFF
 
@@ -299,8 +320,7 @@ AfterOnce
 class Delay():
     """ 
 
-Delay
-----------------------------------------------------------------------------------------
+# Delay
 ----------------------------------------------------------------------------------------
 - To make events or recall function after tot time in a cicle
 - You have before to make an istance "otside every cicles"
@@ -309,8 +329,7 @@ Delay
     def __init__(self, sec, myfunction = None):
         """ 
 
-Delay
-----------------------------------------------------------------------------------------
+# Delay
 ----------------------------------------------------------------------------------------
 - To make events or recall function after tot time in a cicle
 
@@ -325,10 +344,10 @@ Delay
     def Start(self):
         """ 
 
-Start
+# Start
 ----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
-- To start the delay once it will be finished, it would be off
+- To start the delay 
+- #### Once it will be finished it would be off
 
 """
         if self.__flag:
@@ -341,10 +360,10 @@ Start
     def ReStart(self):
         """ 
 
-Restart
+# Restart
 ----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
-- To Restart the delay once it would be off
+- To Restart the delay
+- #### Once it will be finished it would be off
 
 """
         if not self.__flag:
@@ -354,11 +373,11 @@ Restart
     def Infinite(self):
         """ 
 
-Infinite
+# Infinite
 ----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
-- Once it is finished, it will restart again by 0
 - Start --> Restart --> Start ...
+- #### Once it is finished, it will restart again by 0
+
 
 """
         self.ReStart()
@@ -370,25 +389,25 @@ Infinite
 class Timer():
     """ 
 
-Timer
-----------------------------------------------------------------------------------------
+# Timer
 ----------------------------------------------------------------------------------------
 - Timer in pygame
-- Default state: countdown (change -> reversed value)
-- You have before to make an istance "otside every cicles"
+- ### You have before to make an istance "otside every cicles"
+- #### Default state: countdown (change -> reversed value)
 
 """
     def __init__(self, time: tuple = (0, 0), molt_sec = 1,  myfunction = None, pos = None, size = 20, color = 'Black', font = 'freesansbold.ttf', reversed: bool = True, removeEvents: bool = True):
         """ 
 
-Timer
-----------------------------------------------------------------------------------------
+# Timer
 ----------------------------------------------------------------------------------------
 - Timer in pygame
-- Default state: countdown (change -> reversed value)
-- You have before to make an istance "otside every cicles"
+- ### You have before to make an istance "otside every cicles"
+- #### Default state: countdown (change -> reversed value)
 
 """
+
+
         self.__pos = pos
         if pos != None and type(pos) == tuple: self.__pos = pos
 
@@ -430,10 +449,10 @@ Timer
     def AddEvent(self, time: tuple, myfunction: classmethod):
         """ 
 
-AddEvent
-----------------------------------------------------------------------------------------
+# AddEvent
 ----------------------------------------------------------------------------------------
 - Add a function in a selected period of time
+- #### Once it is finished, Default --> delete event (editable)
 
 """
         if not (time, myfunction) in self.__listfunctions: self.__listfunctions.append((time, myfunction))
@@ -441,25 +460,21 @@ AddEvent
     def Start(self):
         """ 
 
-Start
+# Start
 ----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
-- To start the timer once it will be finished, it would be off
+- To start the timer
+- #### Once it will be finished, it would be off
 
 """
 
         for event in self.__listfunctions:
             if self.getTime() == event[0]:
-                try:
-                    self.__do.Once(lambda: event[1]())
-                except RecursionError:
-                    pass
                 
-                try:
-                    if self.__destroyfunctions:
-                        self.__listfunctions.pop(self.__listfunctions.index(event))
-                except ValueError:
-                    pass
+                self.__do.Once(lambda: event[1]())
+                self.__do = Do()
+                
+                if self.__destroyfunctions and event in self.__listfunctions:
+                    self.__listfunctions.pop(self.__listfunctions.index(event))
 
         if self.__flag and not self.IsOver():
 
@@ -490,10 +505,11 @@ Start
     def ReStart(self):
         """ 
 
-Restart
+# Restart
 ----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
-- To Restart the timer once it would be off
+- To Restart the timer
+- #### Once it will be finished, it would be off
+
 
 """
         if not self.__flag:
@@ -503,10 +519,9 @@ Restart
     def Pause(self):
         """ 
 
-Pause
+# Pause
 ----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
-- To set it a pause mode
+- To set it in pause mode
 
 """
         self.__flag = False
@@ -514,8 +529,7 @@ Pause
     def DePause(self):
         """ 
 
-Depause
-----------------------------------------------------------------------------------------
+# Depause
 ----------------------------------------------------------------------------------------
 - To set it a depause mode, so to continue
 
@@ -525,11 +539,10 @@ Depause
     def AddSeconds(self, secs):
         """ 
 
-AddSeconds
-----------------------------------------------------------------------------------------
+# AddSeconds
 ----------------------------------------------------------------------------------------
 - Function that allows to add seconds (+/-) on the timer
-- Automatically converts seconds into minutes
+- #### Automatically converts seconds into minutes
 
 """     
 
@@ -577,10 +590,10 @@ AddSeconds
     def Stop(self):
         """ 
 
-Stop
+# Stop
 ----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
-- To stop the timer, it will be start by the default value
+- To stop the timer
+- #### It will be start by the default value
 
 """
         self.__init__(self.__max_sec, self.__molt_sec, self.__mainfunction)
@@ -588,10 +601,10 @@ Stop
     def Show(self):
         """ 
 
-Show
-----------------------------------------------------------------------------------------
+# Show
 ----------------------------------------------------------------------------------------
 - To show the timer as a pygame.font.render on game window
+- ### Output --> pygame.font.render
 
 """
         import pygame
@@ -625,11 +638,10 @@ Show
     def getTime(self):
         """ 
 
-getTime
-----------------------------------------------------------------------------------------
+# GetTime
 ----------------------------------------------------------------------------------------
 - Returns a tuple of the actual minutes and seconds
-- (minutes: int, seconds: int)
+- #### Return --> (minutes: int, seconds: int)
 
 """
         return (int(self.__getMinutes()), int(self.__getSeconds()))
@@ -637,25 +649,24 @@ getTime
     def setTime(self, minutes: int = None, seconds: int = None):
         """ 
 
-setTime
-----------------------------------------------------------------------------------------
+# SetTime
 ----------------------------------------------------------------------------------------
 - Set minutes, and seconds
-- minutes: int, seconds: int
+- #### Parametres --> minutes: int, seconds: int
 
-"""
+"""     
+        self.__do = Do()
         if minutes != None and type(minutes) == int: self.__minutes = minutes
         if seconds != None and type(seconds) == int: self.__seconds = seconds * GE.getFps()
 
     def CheckTime(self, v: tuple = (0, 0)):
         """ 
 
-CheckTime
-----------------------------------------------------------------------------------------
+# CheckTime
 ----------------------------------------------------------------------------------------
 - Checks a tuple of the actual minutes and seconds with the tuple passed as parametrer
-- (Timer.minutes: int, Timer.seconds: int) == (Parametrer.minutes: int, Parametrer.seconds: int)
-- Returns True/False
+- ### IF (Timer.minutes: int, Timer.seconds: int) == (Parametrer.minutes: int, Parametrer.seconds: int)
+- #### Returns: True/False
 
 """
         return True if self.getTime() == v else False
@@ -667,8 +678,7 @@ CheckTime
 class PrintLine():
     """ 
 
-PrintLine
-----------------------------------------------------------------------------------------
+# PrintLine
 ----------------------------------------------------------------------------------------
 - it's a pygame.font.render but easier to set
 
@@ -682,8 +692,7 @@ PrintLine
                 ):
         """ 
 
-PrintLine
-----------------------------------------------------------------------------------------
+# PrintLine
 ----------------------------------------------------------------------------------------
 - it's a pygame.font.render but easier to set
 
@@ -719,8 +728,15 @@ PrintLine
     def getColor(self):
         return self.__color
 
-    def Print(self, text = None):
-        
+    def Print(self, text: str = None):
+        """ 
+
+# Print
+----------------------------------------------------------------------------------------
+- Pass every type of text
+- ### No parametres = str "Default Value"
+
+"""
         if text != None and type(text) == str: self.__text = text
         self.__Print()
 
@@ -773,28 +789,29 @@ PrintLine
 class Dialogue():
     """ 
 
-Dialogue
-----------------------------------------------------------------------------------------
+# Dialogue
 ----------------------------------------------------------------------------------------
 - It's a interface bar created for dialogues
 - It's a sync class (so until it's not dead the other components won't update), but it allows you to pass a function that realoads itself
-- You have before to make an istance "otside every cicles" and then set your preferences on the instance
-- You are free to change text when you want with Print() method
+- ### You are free to change text when you want with Print() method
+- #### You have before to make an istance "otside every cicles" and then set your preferences on the instance
+
 
 """
-    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, show_flashing = True, size_char = 14, default_text = "This is an example of Dialogue", text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None):
+    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, show_flashing = True, size_char = 14, default_text = "This is an example of Dialogue", text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None, escapeFunction = None):
         import pygame        
         """ 
 
-Dialogue
-----------------------------------------------------------------------------------------
+# Dialogue
 ----------------------------------------------------------------------------------------
 - It's a interface bar created for dialogues
 - It's a sync class (so until it's not dead the other components won't update), but it allows you to pass a function that realoads itself
-- You have before to make an istance "otside every cicles" and then set your preferences on the instance
-- You are free to change text when you want with Print() method
+- ### You are free to change text when you want with Print() method
+- #### You have before to make an istance "otside every cicles" and then set your preferences on the instance
 
 """
+        import matplotlib.colors as mcol
+
         self.__ot = offset * GE.getScreenMolt()
         
         if wh == None: self.__wh = (GE.getScreenResolution()[0] - self.__ot * 2, 100 * GE.getScreenMolt())
@@ -805,13 +822,17 @@ Dialogue
         
         self.__text = default_text
         self.__text_color = text_color
-        self.__background = background
+        
+        if type(background) == tuple: self.__background = RGBToHex(background[0], background[1], background[2])
+        else: self.__background = background if background in mcol.cnames.keys() else mcol.to_hex(background)
+        
         self.__descr = ""
-        self.__incr = 100
+        self.__incr = 220
         self.__delay = 0
         self.__charmin = 20
         self.__charlimit = 0
         self.__update_funct = updateFunction
+        self.__escape_funct = escapeFunction
         self.__finished = False
         self.__flag = False
         self.__sizechar = size_char
@@ -821,31 +842,36 @@ Dialogue
         self.__debug = debug
         self.__distancex, self.__distancey = 25 * GE.getScreenMolt(), 5 * GE.getScreenMolt()
         
-        if type(background) == str: self.__background = hex2rgb(background)
+        if type(self.__background) == str: self.__background = hex2rgb(self.__background)
 
         self.__rect = pygame.Rect(self.__pos[0], self.__pos[1], self.__wh[0], self.__wh[1])
 
     def Print(self, text: str):
         """ 
 
-Print
-----------------------------------------------------------------------------------------
+# Print
 ----------------------------------------------------------------------------------------
 - Pass every type of text
-- Char limit 400
+- ### No parametres = str "Default Value"
+- #### Char limit 400
 
 """
         import pygame
         
         self.__delay = 0
-        self.__incr = 100
+        self.__flag = False
         
         if text != "":
             self.__text = text
         
         while not self.__finished:
-                        
-            if self.__update_funct != None: self.__update_funct()
+            
+            try:
+                if self.__update_funct != None: self.__update_funct()
+            except RecursionError:
+                import sys
+                print(colored("#ff0000", "\nRecursionError: You need to call Dialogue() class in another function to work properly!"))
+                sys.exit()
             
             for event in pygame.event.get():
                 
@@ -854,6 +880,9 @@ Print
                     sys.exit()
             
                 if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        if self.__escape_funct != None: self.__escape_funct()
+                    
                     if event.key == pygame.K_SPACE:
                         if self.__flag or self.__finished:
                             self.__finished = True
@@ -875,7 +904,7 @@ Print
         
     def __appendText(self):
         
-        if GE.CheckTicks(26):
+        if GE.CheckTicks(22):
             self.__flag_flash = False
         else:
             self.__flag_flash = True
@@ -886,8 +915,6 @@ Print
             self.__descr = self.__text
         
         self.__delay += 0.1 / GE.getFps() * GE.getDelta_time() * self.__incr
-            
-        # print(int(self.__delay), GE.getFps())
 
     def __PrintBG(self):
         import pygame
@@ -959,5 +986,93 @@ Print
             if len(text_passed) == len(self.__text):
                 self.__flag = True
 
+class InputKeys():
+    """
+# InputKeys
+----------------------------------------------------------------------------------------
+- A way to set InputKeys and assign them with a custom name
+- #### You have before to make an istance "otside every cicles"
+
+    """
+    
+    def __init__(self):
+        """
+# InputKeys
+----------------------------------------------------------------------------------------
+- A way to set InputKeys and assign them with a custom name
+- #### You have before to make an istance "otside every cicles"
+
+        """
+        self.__dict = {}
+        self.__do = Do()
+        self.__NotfoundValues = []
+
+    
+    def Add(self, name: str = "default", commandlist : list = []):
+        """
+# Add
+----------------------------------------------------------------------------------------
+- Add new InputKeys with a name
+- ### Parametres -->  name: str = "default", commandlist : list = []
+
+        """
+        self.__dict[name.lower()] = commandlist
+    
+    def Check(self, name: str, key : classmethod):
+        """
+# Check
+----------------------------------------------------------------------------------------
+- Check the inputs with the name passed
+- ### Parametres -->  name: str, key : classmethod
+- #### Returns: True/False
+
+        """
+        import pygame
+        key_pressed = pygame.key.name(key)
+        
+        if not name.lower() in self.__NotfoundValues:
+            self.__do = Do()
+        
+        if name.lower() in self.__dict.keys():
+            return (True if key_pressed in self.__dict[name.lower()] else False)
+        else:
+            import traceback
+            (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+            def_name = text[:text.find('=')].strip()
+            self.__do.Once(lambda: print(colored(("#faf676"),"\nline "+str(line_number)+" | "+str(def_name)+".Check("+name+") --> Note: name \""+name+"\" has not been registered!")))
+            (self.__NotfoundValues.append(name.lower()) ) if name.lower() not in self.__NotfoundValues else 0
+        
+    def Remove(self, name: str):
+        """
+# Remove
+----------------------------------------------------------------------------------------
+- Remove an input from your inputs dict
+
+        """
+        if name in self.__dict.keys():
+            self.__dict.pop(name.lower())
+        
+    def Clear(self):
+        """
+# Clear
+----------------------------------------------------------------------------------------
+- Restore your inputs dict
+
+        """
+        self.__dict.clear()
+        
+    def ReturnKeys(self, found: bool = True):
+        """
+# ReturnKeys
+----------------------------------------------------------------------------------------
+- Returns the dict of found/unfound values
+- #### Return: self.__dict if found else self.__NotfoundValues
+
+        """
+        return self.__dict if found else self.__NotfoundValues
+        
+
+
+
 if __name__ != "__main__":
-    print("\033[96m {}\033[00m" .format("\r\nGameEngine 1.0 - Created by Senex03 || Welcome!!"))
+    print(colored(("#87CEEB"),"\r\nGameEngine 1.0 - Created by Senex03 || Welcome!!"))
