@@ -6,8 +6,8 @@ import sys
 Delta_Time = 1
 MULT = 2
 
-screen_resolution = (490 * MULT, 270 * MULT)
-FPS = 60 * Delta_Time
+screen_resolution = (490, 270)
+FPS = 60
 
 
 DEF = ge.Defaults(
@@ -28,7 +28,7 @@ def inizializza():
 
     showComands = True
     
-    dialogo = ge.Dialogue(updateFunction=render, background="#f6412e", colorshadow="Black", shadowdistance=4, size_char=18, escapeFunction=exit)
+    dialogo = ge.Dialogue(updateFunction=render, background="#f6412e", colorshadow="Black", shadowdistance=4, size_char=14, escapeFunction=exit)
     timer = ge.Timer(time = (0, 5), molt_sec = 1, myfunction=lambda: print("Vengo richiamato una volta sola"), color = "Red", reversed=True, removeEvents=True)
     testo = ge.PrintLine(size=20, color="Black")
     
@@ -38,8 +38,10 @@ def Myinputs():
     global mykeys
     mykeys = ge.InputKeys()
     
-    mykeys.Add("Dialogo app", ["a", "b", "c"])
+    mykeys.Add("Dialogo stampa", ["a", "b", "c"])
     mykeys.Add("Esci", ["escape"])
+    mykeys.Add("Aumenta Molt", ["o"])
+    mykeys.Add("Diminuisci Molt", ["p"])
 
 
 def render():
@@ -76,9 +78,14 @@ def comands():
             if mykeys.Check("Esci", key):
                 mainloop = not mainloop
             
-            if mykeys.Check("Dialogo app", key):
-                dialogo.Print("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi urna dolor, porta vitae fermentum malesuada, suscipit nec massa. Pellentesque consequat quam quis mattis aliquet. Nulla id aliquet ante, a gravida nisl.")
-    
+            if mykeys.Check("Dialogo stampa", key):
+                dialogo.Print("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi urna dolor, porta vitae fermentum malesuada, suscipit nec massa.")
+
+            if mykeys.Check("Aumenta Molt", key, True):
+                DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()+1, delta_time=DEF.getDelta_time()-1, defaultfunctionReload = inizializza)
+                
+            if mykeys.Check("Diminuisci Molt", key, True):
+                DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()-1, delta_time=DEF.getDelta_time()+1, defaultfunctionReload = inizializza)
 
 def exit():
     print(ge.colored(("#fb3f3f"),"\n--- Exit from the program ---"))
@@ -98,7 +105,7 @@ def main():
         conditions()
         
         
-        py.display.set_caption(str(DEF.getFps()))
+        py.display.set_caption("FPS: "+str(DEF.getActualFps(2)))
         DEF.update()
         
     exit()

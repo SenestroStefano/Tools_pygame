@@ -48,7 +48,6 @@ def colored(color, text):
 # Colored
 --------
 
---------
 ### Returns:
     colored str
 """
@@ -106,12 +105,19 @@ class Defaults():
         GE.__CheckErrors(Defaults, def_name, 0)
         GE.__CheckErrors(window_resolution, def_name, 1)
         
+        import pygame
+        self.__hw = window_resolution
+        self.__dfWH = pygame.display.Info().current_w, pygame.display.Info().current_h
+        self.__df_fps = fps
+        
         self.setScreenMolt(a)
         self.setDelta_time(b)
-        self.setScreenResolution(window_resolution)
+        self.setScreenResolution((window_resolution[0] * screen_molt, 
+                                  window_resolution[1] * screen_molt))
         self.setFps(fps)
+        
         self.__Ticks = 0
-        self.__dfWH = (0, 0)
+        self.__clock = self.getClock()
         
     def getClock(self):
         import pygame
@@ -134,7 +140,7 @@ class Defaults():
             self.__Ticks = 0
         import pygame
         pygame.display.flip()
-        self.getClock().tick(self.getFps())
+        self.__clock.tick(self.getFps())
         
     def getTime(self):
         import pygame
@@ -174,13 +180,9 @@ class Defaults():
         return self.__game_window
         
     def setScreenResolution(self, pygame_display_screen_mode: tuple):
-        import pygame
-        
-        self.__dfWH = pygame.display.Info().current_w, pygame.display.Info().current_h
-        
         var = pygame_display_screen_mode
         
-        if pygame_display_screen_mode <= self.__dfWH:
+        if pygame_display_screen_mode >= self.__dfWH:
             var = self.__dfWH
             old_screen_res = (pygame_display_screen_mode[0] / self.getScreenMolt() + pygame_display_screen_mode[1] / self.getScreenMolt()) / 2
             screen_res = (self.__dfWH[0] / old_screen_res + self.__dfWH[1] / old_screen_res)//2
@@ -193,14 +195,38 @@ class Defaults():
         return self.__window_resolution
     
     def setFps(self, var):
-        self.__fps = var
+        self.__fps = var * self.getDelta_time()
         
     def getFps(self):
         return self.__fps
     
+    def getActualFps(self, round_value: int = 10):
+        return round(self.__clock.get_fps(), round_value)
+    
     def setScreenMolt(self, screen_multiplier: int):
         self.__screen_molt = screen_multiplier
+    
+    def setMultipliers(self, screen_multiplier: int = 0, delta_time: int = 0, defaultfunctionReload: classmethod = None):
         
+        s = screen_multiplier if screen_multiplier != 0 else self.getScreenMolt()
+        d = delta_time if delta_time != 0 else self.getDelta_time()
+        
+        if s != self.getScreenMolt():
+            self.setScreenMolt(s)
+            w, h = self.__hw 
+            self.setScreenResolution((w * s, h * s))
+            
+            if defaultfunctionReload != None: 
+                defaultfunctionReload()
+                print(colored("#384935","\n RESOLUTION --> "+str(self.getScreenResolution())+" | - Resolution of screen and of the components ( MOLT = "+str(self.getDelta_time())+" ) has successfully been changed!\n"))
+            else:
+                print(colored("#384935","\n RESOLUTION --> "+str(self.getScreenResolution())+" | - Resolution of screen has successfully been changed!\n"))
+        
+        if d != self.getDelta_time():
+            self.setDelta_time(d if d <= 4 else 4)
+            self.setFps(self.__df_fps)
+            print(colored("#748071","\n FPS --> "+str(self.getFps())+" | - FPS have successfully been changed!\n"))
+    
     def getScreenMolt(self):
         return self.__screen_molt
     
@@ -798,7 +824,7 @@ class Dialogue():
 
 
 """
-    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, show_flashing = True, size_char = 14, default_text = "This is an example of Dialogue", text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None, escapeFunction = None):
+    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, vel_text: int = 3, show_flashing = True, size_char = 14, default_text = "This is an example of Dialogue", text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None, escapeFunction = None):
         import pygame        
         """ 
 
@@ -827,10 +853,12 @@ class Dialogue():
         else: self.__background = background if background in mcol.cnames.keys() else mcol.to_hex(background)
         
         self.__descr = ""
-        self.__incr = 220
+        self.__incr = vel_text / GE.getDelta_time()
+        self.__def_incr = self.__incr
         self.__delay = 0
         self.__charmin = 20
         self.__charlimit = 0
+        self.__charmax = 144
         self.__update_funct = updateFunction
         self.__escape_funct = escapeFunction
         self.__finished = False
@@ -841,6 +869,8 @@ class Dialogue():
         self.__shadows = (colorshadow, shadowdistance)
         self.__debug = debug
         self.__distancex, self.__distancey = 25 * GE.getScreenMolt(), 5 * GE.getScreenMolt()
+        self.__do = Do()
+        self.__flip_flop = Flip_Flop()
         
         if type(self.__background) == str: self.__background = hex2rgb(self.__background)
 
@@ -863,6 +893,16 @@ class Dialogue():
         
         if text != "":
             self.__text = text
+            
+        if len(self.__text) > self.__charmax:
+            import traceback
+            (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+            def_name = text[:text.find('=')].strip().split(".")[0]
+            length = len(self.__text) - self.__charmax
+            self.__text = self.__text[:self.__charmax]
+            self.__do.Once(lambda: print(colored("Yellow", "\nline "+str(line_number)+" | "+def_name+".Print(\"Your Text\") --> Note: Text shorten cause too long!! (-"+str(length)+" char)")))
+        
+        self.__incr = self.__def_incr
         
         while not self.__finished:
             
@@ -888,7 +928,7 @@ class Dialogue():
                             self.__finished = True
                         
                         self.__flag = not self.__flag
-                        self.__incr = 1000
+                        self.__incr = 18 / GE.getDelta_time()
                         
             self.__appendText()
         
@@ -904,17 +944,15 @@ class Dialogue():
         
     def __appendText(self):
         
-        if GE.CheckTicks(22):
-            self.__flag_flash = False
-        else:
-            self.__flag_flash = True
+        if self.__flip_flop.AfterTimes(times = 30 * GE.getDelta_time()):
+            self.__flag_flash = not self.__flag_flash
         
         if int(self.__delay) < len(self.__text): 
             self.__descr = self.__text[:int(self.__delay)+1]
         else:
             self.__descr = self.__text
         
-        self.__delay += 0.1 / GE.getFps() * GE.getDelta_time() * self.__incr
+        self.__delay += 10 / GE.getFps() * GE.getDelta_time() * self.__incr
 
     def __PrintBG(self):
         import pygame
@@ -945,30 +983,27 @@ class Dialogue():
 
     def __PrintTX(self):
         
-        g = len(self.__text.split(" "))
-        val = len(self.__text)//self.__charmin+1
-        pr = g//val
+        val = 7
+        nword = len(self.__text.split(" "))
+        self.__charmin = int((len(self.__text)/nword) - ((len(self.__text)/nword)/val))
         
-        self.__charlimit = (self.__charmin * pr)
+        self.__charlimit = (self.__charmin + self.__charmin*val)
         
-        val = len(self.__text)//self.__charlimit+1
-        pr = (g//val) + 4
-        
-        for i in range(val):
+        for i in range(nword):
             lim = self.__charlimit
             
             text_passed = self.__descr
             if val > 1:
                 if i > 0 and i < val - 1:
-                    text_passed = self.__descr[(lim*i)-pr:(((lim)*(i+1))-pr)]
+                    text_passed = self.__descr[(lim*i):(((lim)*(i+1)))]
                 elif not i and i < val - 1:
-                    text_passed = self.__descr[(lim*i):(((lim)*(i+1))-pr)]
+                    text_passed = self.__descr[(lim*i):(((lim)*(i+1)))]
                 else:
-                    text_passed = self.__descr[(lim*i)-pr:((lim*(i+1)))]
+                    text_passed = self.__descr[(lim*i):((lim*(i+1)))]
                 
             
             
-            space_line = (90 / val) * GE.getScreenMolt()
+            space_line = ((140 / val) + (self.__sizechar / val)) * GE.getScreenMolt()
             PrintLine(
                 
                     defaultText=text_passed,
@@ -1018,7 +1053,7 @@ class InputKeys():
         """
         self.__dict[name.lower()] = commandlist
     
-    def Check(self, name: str, key : classmethod):
+    def Check(self, name: str, key : classmethod, holded: bool = False):
         """
 # Check
 ----------------------------------------------------------------------------------------
@@ -1029,12 +1064,13 @@ class InputKeys():
         """
         import pygame
         key_pressed = pygame.key.name(key)
+        key_holded = True if holded else bool(pygame.key.get_pressed().count(1))
         
         if not name.lower() in self.__NotfoundValues:
             self.__do = Do()
-        
+            
         if name.lower() in self.__dict.keys():
-            return (True if key_pressed in self.__dict[name.lower()] else False)
+            return (True if key_pressed in self.__dict[name.lower()] and key_holded else False)
         else:
             import traceback
             (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
