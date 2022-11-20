@@ -172,9 +172,12 @@ class Defaults():
             return True
         return False
     
-    def setScreen(self, resolution):
+    def setScreen(self, resolution, fullscreen = False):
         import pygame
-        self.__game_window = pygame.display.set_mode(resolution)
+        if fullscreen:
+            self.__game_window = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
+        else:
+            self.__game_window = pygame.display.set_mode(resolution)
     
     def getScreen(self):
         return self.__game_window
@@ -182,14 +185,16 @@ class Defaults():
     def setScreenResolution(self, pygame_display_screen_mode: tuple):
         var = pygame_display_screen_mode
         
+        a = False
         if pygame_display_screen_mode >= self.__dfWH:
             var = self.__dfWH
             old_screen_res = (pygame_display_screen_mode[0] / self.getScreenMolt() + pygame_display_screen_mode[1] / self.getScreenMolt()) / 2
             screen_res = (self.__dfWH[0] / old_screen_res + self.__dfWH[1] / old_screen_res)//2
             self.setScreenMolt(screen_res)
+            a = True
         
         self.__window_resolution = var
-        self.setScreen(self.__window_resolution)
+        self.setScreen(self.__window_resolution, a)
         
     def getScreenResolution(self):
         return self.__window_resolution
@@ -824,7 +829,7 @@ class Dialogue():
 
 
 """
-    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, vel_text: int = 3, show_flashing = True, size_char = 14, default_text = "This is an example of Dialogue", text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None, escapeFunction = None):
+    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, vel_text: int = 3, show_flashing = True, size_char = 12, default_text = "This is an example of Dialogue", wordsperline = None, charmax = 256, text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None, escapeFunction = None):
         import pygame        
         """ 
 
@@ -856,20 +861,22 @@ class Dialogue():
         self.__incr = vel_text / GE.getDelta_time()
         self.__def_incr = self.__incr
         self.__delay = 0
-        self.__charmin = 20
-        self.__charlimit = 0
-        self.__charmax = 144
+        self.__sizechar = size_char if size_char > 0 else 12
+        self.__defsizechar = 12
+        self.__wordlimit = wordsperline
+        if wordsperline == None or wordsperline < 2: self.__wordlimit = (8 * 2) - int((8 * size_char) / self.__defsizechar)
+        self.__charmax = charmax
         self.__update_funct = updateFunction
         self.__escape_funct = escapeFunction
         self.__finished = False
         self.__flag = False
-        self.__sizechar = size_char
         self.__show_flashing = show_flashing
         self.__flag_flash = False
         self.__shadows = (colorshadow, shadowdistance)
         self.__debug = debug
-        self.__distancex, self.__distancey = 25 * GE.getScreenMolt(), 5 * GE.getScreenMolt()
+        self.__distancex, self.__distancey = 18 * GE.getScreenMolt(), 5 * GE.getScreenMolt()
         self.__do = Do()
+        self.__do2 = Do()
         self.__flip_flop = Flip_Flop()
         
         if type(self.__background) == str: self.__background = hex2rgb(self.__background)
@@ -982,44 +989,72 @@ class Dialogue():
         pass
 
     def __PrintTX(self):
+        import time
         
-        val = 7
-        nword = len(self.__text.split(" "))
-        self.__charmin = int((len(self.__text)/nword) - ((len(self.__text)/nword)/val))
+        words = self.__text.split(" ")
+        nword = len(words)
         
-        self.__charlimit = (self.__charmin + self.__charmin*val)
+        nlines = (nword // self.__wordlimit) + 1
         
-        for i in range(nword):
-            lim = self.__charlimit
+        
+        wordsperline = []
+        for j in range(len(words)):
+            wordsperline.append(" ".join(words[self.__wordlimit*j:self.__wordlimit*(j+1)]))
+        
+        a = []
+        b = []
+        
+        for i in range(nlines):    
             
-            text_passed = self.__descr
-            if val > 1:
-                if i > 0 and i < val - 1:
-                    text_passed = self.__descr[(lim*i):(((lim)*(i+1)))]
-                elif not i and i < val - 1:
-                    text_passed = self.__descr[(lim*i):(((lim)*(i+1)))]
-                else:
-                    text_passed = self.__descr[(lim*i):((lim*(i+1)))]
+            limS = len(wordsperline[i-1])
+            limD = len(wordsperline[i])
+            
+            
+            a.append(limS)
+            b.append(limD)
+            
+            if i == 0:
+                text_passed = self.__descr[ a[i] : b[i] ]
+            else:
+                text_passed = self.__descr[ sum(a[0:i+1]) : sum(b[0:i+1]) ]
                 
-            
-            
-            space_line = ((140 / val) + (self.__sizechar / val)) * GE.getScreenMolt()
-            PrintLine(
+            if len(text_passed) > 0:
+                resto = 0
                 
-                    defaultText=text_passed,
-                    pos = (self.__pos[0] + self.__ot*2 + self.__distancex*4, self.__pos[1] + self.__ot*2 + space_line * i + self.__distancey*2), 
-                    alignment = "start", size = self.__sizechar, 
-                    color=self.__text_color, 
-                    colorshadow=self.__shadows[0],
-                    shadowdistance=self.__shadows[1],
-                    showborder=self.__debug,
-                    showpoints=self.__debug,
-                    showcoords=self.__debug
+                for j in range(len(text_passed)):
+                    if text_passed[j] == " " and i != 0:
+                        resto = j + 1
+                        break
+                        
+                text_passed = self.__descr[ sum(a[0:i+1])+resto : sum(b[0:i+1])+resto ]
+            
+            space_line = (7 + self.__sizechar) * GE.getScreenMolt()
+            
+            line = PrintLine(
+                
+                    pos = (self.__pos[0] + self.__ot*2 + self.__distancex*4, self.__pos[1] + self.__ot*2 + (space_line * i) + self.__distancey*2), 
                     
-                ).Print()
+                    alignment = "start", size = self.__sizechar, 
+                    
+                    color=self.__text_color, 
+                    
+                    colorshadow=self.__shadows[0], shadowdistance=self.__shadows[1],
+                    
+                    showborder=self.__debug, showpoints=self.__debug, showcoords=self.__debug
+                    
+                )
+            
+            
+            if line.getPos()[1] < self.__pos[1] + self.__wh[1] - self.__ot*3 and line.getPos()[0] < self.__pos[0] + self.__wh[0]:
+                line.Print(text_passed)
+            else:
+                import traceback
+                (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+                def_name = text[:text.find('=')].strip()
+                self.__do2.Once(lambda: print(colored(("Yellow"),"\nDialogue() --> Note: ( size = "+str(self.__sizechar)+" | wordsline = "+str(self.__wordlimit)+" ) it is too exaggerated to allow the render of the complete sentence!\n")))
         
-            if len(text_passed) == len(self.__text):
-                self.__flag = True
+        if len(text_passed) == len(self.__text):
+            self.__flag = True
 
 class InputKeys():
     """
@@ -1075,7 +1110,7 @@ class InputKeys():
             import traceback
             (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
             def_name = text[:text.find('=')].strip()
-            self.__do.Once(lambda: print(colored(("#faf676"),"\nline "+str(line_number)+" | "+str(def_name)+".Check("+name+") --> Note: name \""+name+"\" has not been registered!")))
+            self.__do.Once(lambda: print(colored(("#faf676"),"\nline "+str(line_number)+" | "+str(def_name)+".Check("+name+") --> Note: name \""+name+"\" has not been registered!\n")))
             (self.__NotfoundValues.append(name.lower()) ) if name.lower() not in self.__NotfoundValues else 0
         
     def Remove(self, name: str):

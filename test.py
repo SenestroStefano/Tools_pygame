@@ -28,7 +28,7 @@ def inizializza():
 
     showComands = True
     
-    dialogo = ge.Dialogue(updateFunction=render, background="#f6412e", colorshadow="Black", shadowdistance=4, size_char=14, escapeFunction=exit)
+    dialogo = ge.Dialogue(updateFunction=render, pos=(0, 0), wh=(490, 270), debug=False, background="#5d6cda", colorshadow="Black", shadowdistance=6, size_char=18, escapeFunction=exit)
     timer = ge.Timer(time = (0, 5), molt_sec = 1, myfunction=lambda: print("Vengo richiamato una volta sola"), color = "Red", reversed=True, removeEvents=True)
     testo = ge.PrintLine(size=20, color="Black")
     
@@ -40,8 +40,8 @@ def Myinputs():
     
     mykeys.Add("Dialogo stampa", ["a", "b", "c"])
     mykeys.Add("Esci", ["escape"])
-    mykeys.Add("Aumenta Molt", ["o"])
-    mykeys.Add("Diminuisci Molt", ["p"])
+    mykeys.Add("Aumenta Molt", ["+"])
+    mykeys.Add("Diminuisci Molt", ["-"])
 
 
 def render():
@@ -49,7 +49,7 @@ def render():
     DEF.getScreen().fill((255, 255, 255))
     timer.Start()
     timer.Show()
-    testo.Print()
+    testo.Print("FPS: "+str(DEF.getActualFps(2)))
 
 def pre_conditions():
     timer.AddEvent((9, 55), lambda: dialogo.Print("Evento richiamato"))
@@ -79,7 +79,7 @@ def comands():
                 mainloop = not mainloop
             
             if mykeys.Check("Dialogo stampa", key):
-                dialogo.Print("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi urna dolor, porta vitae fermentum malesuada, suscipit nec massa.")
+                dialogo.Print("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi urna dolor, porta vitae fermentum malesuada, suscipit nec massa. Pellentesque consequat quam quis mattis aliquet. Nulla id aliquet ante, a gravida nisl. Nulla facilisi.")
 
             if mykeys.Check("Aumenta Molt", key, True):
                 DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()+1, delta_time=DEF.getDelta_time()-1, defaultfunctionReload = inizializza)
