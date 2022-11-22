@@ -1,21 +1,21 @@
-import GameEngine as ge
+from GameEngine import *
 import pygame as py
 import sys
 
 
-Delta_Time = 1
-MULT = 2
+Molt_Time = 1
+Molt_Screen = 2
 
 screen_resolution = (490, 270)
 FPS = 60
 
 
-DEF = ge.Defaults(
+DEF = Defaults(
 
     window_resolution = screen_resolution,
     fps = FPS,
-    screen_molt = MULT,
-    delta_time = Delta_Time
+    screen_molt = Molt_Screen,
+    time_molt = Molt_Time
 
 )
 
@@ -28,15 +28,15 @@ def inizializza():
 
     showComands = True
     
-    dialogo = ge.Dialogue(updateFunction=render, pos=(0, 0), wh=(490, 270), debug=False, background="#5d6cda", colorshadow="Black", shadowdistance=6, size_char=18, escapeFunction=exit)
-    timer = ge.Timer(time = (0, 5), molt_sec = 1, myfunction=lambda: print("Vengo richiamato una volta sola"), color = "Red", reversed=True, removeEvents=True)
-    testo = ge.PrintLine(size=20, color="Black")
+    dialogo = Dialogue(updateFunction=render, pos=(0, 0), wh=(210, 120), debug=False, background="#431638", colorshadow="Black", shadowdistance=6, size_char=90, wordsperline=9, escapeFunction=exit)
+    timer = Timer(time = (0, 5), molt_sec = 1, myfunction=lambda: print("Vengo richiamato una volta sola"), color = "Red", reversed=True, removeEvents=True)
+    testo = PrintLine(size=20, color="Black")
     
     Myinputs()
 
 def Myinputs():
     global mykeys
-    mykeys = ge.InputKeys()
+    mykeys = InputKeys()
     
     mykeys.Add("Dialogo stampa", ["a", "b", "c"])
     mykeys.Add("Esci", ["escape"])
@@ -45,18 +45,20 @@ def Myinputs():
 
 
 def render():
+    py.display.set_caption("FPS: "+str( int(DEF.getActualFps(2)) ))
     
     DEF.getScreen().fill((255, 255, 255))
     timer.Start()
     timer.Show()
-    testo.Print("FPS: "+str(DEF.getActualFps(2)))
+    testo.Print("FPS: "+str( int((DEF.getActualFps(2) * DEF.getDeltaTime())) ))
 
 def pre_conditions():
-    timer.AddEvent((9, 55), lambda: dialogo.Print("Evento richiamato"))
-    timer.AddEvent((9, 52), lambda: dialogo.Print("Evento richiamato 2"))
-    timer.AddEvent((9, 50), lambda: dialogo.Print("Evento richiamato 3"))
+    timer.AddEvent((8, 55), lambda: dialogo.Print("Evento richiamato"))
+    timer.AddEvent((8, 52), lambda: dialogo.Print("Evento richiamato 2"))
+    timer.AddEvent((8, 50), lambda: timer.AddSeconds(40))
     
-    
+
+
 def conditions():
     
     if timer.IsOver():
@@ -79,18 +81,17 @@ def comands():
                 mainloop = not mainloop
             
             if mykeys.Check("Dialogo stampa", key):
-                dialogo.Print("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi urna dolor, porta vitae fermentum malesuada, suscipit nec massa. Pellentesque consequat quam quis mattis aliquet. Nulla id aliquet ante, a gravida nisl. Nulla facilisi.")
+                text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.Nunc purus nisl, ornare vitae quam et, rutrum egestas lorem.Aenean consectetur magna ut volutpat scelerisque.Nulla iaculis luctus elit at rhoncus.Aenean aliquam dignissim urna ut consectetur.Pellentesque et ante dui.Nam efficitur convallis enim, vitae pulvinar metus vulputate sed. Proin eget fringilla tellus. Suspendisse semper at ante ac malesuada."
+                dialogo.Print(text)
 
             if mykeys.Check("Aumenta Molt", key, True):
-                DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()+1, delta_time=DEF.getDelta_time()-1, defaultfunctionReload = inizializza)
+                DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()+1, time_multiplier=DEF.getTimeMolt()-1, defaultfunctionReload = inizializza)
                 
             if mykeys.Check("Diminuisci Molt", key, True):
-                DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()-1, delta_time=DEF.getDelta_time()+1, defaultfunctionReload = inizializza)
+                DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()-1, time_multiplier=DEF.getTimeMolt()+1, defaultfunctionReload = inizializza)
 
 def exit():
-    print(ge.colored(("#fb3f3f"),"\n--- Exit from the program ---"))
-    py.quit()
-    sys.exit()
+    DEF.Quit()
 
 def main():
     global mainloop
@@ -104,9 +105,7 @@ def main():
         render()
         conditions()
         
-        
-        py.display.set_caption("FPS: "+str(DEF.getActualFps(2)))
-        DEF.update()
+        DEF.Update()
         
     exit()
     
