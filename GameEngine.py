@@ -7,6 +7,8 @@
 
 """
 
+import pygame
+
 #TO DO add Player Component
 
 def RGBToHex(r, g, b):
@@ -105,7 +107,7 @@ class Defaults():
         GE.__CheckErrors(Defaults, def_name, 0)
         GE.__CheckErrors(window_resolution, def_name, 1)
         
-        import pygame, time
+        import time
         self.__hw = window_resolution
         self.__dfWH = pygame.display.Info().current_w, pygame.display.Info().current_h
         self.__df_fps = fps
@@ -124,14 +126,12 @@ class Defaults():
         
     def Quit(self):
         import sys
-        import pygame as py
         
         print(colored(("#fb3f3f"), "\n--- Exit from the program ---"))
-        py.quit()
+        pygame.quit()
         sys.exit()
         
     def getClock(self):
-        import pygame
         return pygame.time.Clock()
     
     def getCenterScreen(self):
@@ -154,12 +154,10 @@ class Defaults():
         self.__Ticks += 1 / self.getFps()
         if int(self.__Ticks) > 1000:
             self.__Ticks = 0
-        import pygame
         pygame.display.flip()
         self.__clock.tick(self.getFps())
         
     def getTime(self):
-        import pygame
         return pygame.time.get_ticks()
     
     def getDeltaTime(self):
@@ -192,7 +190,6 @@ class Defaults():
         return False
     
     def setScreen(self, resolution, fullscreen = False):
-        import pygame
         if fullscreen:
             self.__game_window = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
         else:
@@ -657,7 +654,6 @@ class Timer():
 - ### Output --> pygame.font.render
 
 """
-        import pygame
         text = pygame.font.Font(self.__font, self.__size).render((self.__text1+str(self.__minutes)+str(self.__text2)+str(int(self.__seconds/GE.getFps()))), True, self.__color)
         if self.__pos == None: self.__pos = (GE.getScreen().get_width()/2 - text.get_width()/2, 35 * GE.getScreenMolt())
         GE.getScreen().blit(text, self.__pos)
@@ -765,11 +761,10 @@ class PrintLine():
         if self.__pos == None: 
             self.__pos = GE.getScreenResolution()
         
-        import pygame
         self.__line = pygame.font.Font(self.__font, self.__size).render((self.__text), True, self.__color, self.__bg)
     
     def setPos(self, pos: tuple = (0, 0)):
-        self.__pos = pos
+        self.__pos = (pos[0] * GE.getScreenMolt(), pos[1] * GE.getScreenMolt())
     
     def getPos(self):
         return self.__pos
@@ -796,7 +791,6 @@ class PrintLine():
         self.__Print()
 
     def __Print(self):
-        import pygame
         self.__line = pygame.font.Font(self.__font, self.__size).render((self.__text), True, self.__color, self.__bg)
         text = self.__line
         
@@ -854,8 +848,7 @@ class Dialogue():
 
 
 """
-    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, vel_text: int = 3, show_flashing = True, size_char = 12, default_text = "This is an example of Dialogue", wordsperline = None, charmax = 140, text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None, escapeFunction = None):
-        import pygame        
+    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, vel_text: int = 3, show_flashing = True, size_char = 12, default_text = "This is an example of Dialogue", wordsperline = None, charmax = 140, text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None, escapeFunction = None):      
         """ 
 
 # Dialogue
@@ -926,7 +919,6 @@ class Dialogue():
 - #### Char limit 400
 
 """
-        import pygame
         
         self.__delay = 0
         self.__flag = False
@@ -1014,7 +1006,6 @@ class Dialogue():
         self.__delay += 10 / GE.getFps() * GE.getTimeMolt() * GE.getDeltaTime() * self.__incr
 
     def __PrintBG(self):
-        import pygame
         pygame.draw.rect(GE.getScreen(), self.__background, self.__rect, 0, 4 * int(GE.getScreenMolt() + 0.9))
         pygame.draw.rect(GE.getScreen(), tuple(map(lambda i, j: abs(i - j), self.__background, self.__dark)), self.__rect, 2 * int(GE.getScreenMolt() + 0.9), 4 * int(GE.getScreenMolt() + 0.9))
         
@@ -1105,14 +1096,10 @@ class Dialogue():
                 
             
             if line.getPos()[0] + line.getSize()[0] + self.__ot*2 > self.__pos[0] + self.__wh[0]:
-                
-                if (self.__wordlimit - self.__classic_wordlimit) > (self.__sizechar - self.__classic_sizechar): 
-                
-                    if self.__wordlimit - 1 >= 2:
-                        self.__wordlimit -= 1
-                else:
-                    if self.__sizechar - 1 >= 1:
-                        self.__sizechar -= 1
+                            
+                if self.__wordlimit - 1 >= 2:
+                    self.__wordlimit -= 1
+
                 
                 self.__flag_format = True
         
@@ -1154,7 +1141,7 @@ class InputKeys():
 - ### Parametres -->  name: str = "default", commandlist : list = []
 
         """
-        self.__dict[name.lower()] = commandlist
+        self.__dict[name.lower()] = commandlist if type(commandlist) == list else [commandlist]
     
     def Check(self, name: str, key : classmethod, holded: bool = False):
         """
@@ -1165,7 +1152,6 @@ class InputKeys():
 - #### Returns: True/False
 
         """
-        import pygame
         key_pressed = pygame.key.name(key)
         key_holded = True if holded else bool(pygame.key.get_pressed().count(1))
         

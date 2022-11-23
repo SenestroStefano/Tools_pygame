@@ -1,6 +1,5 @@
 from GameEngine import *
-import pygame as py
-import sys
+from GameEngine import pygame as py
 
 
 Molt_Time = 1
@@ -28,7 +27,7 @@ def inizializza():
 
     showComands = True
     
-    dialogo = Dialogue(updateFunction=render, pos=(0, 0), wh=(210, 120), debug=False, background="#431638", colorshadow="Black", shadowdistance=6, size_char=90, wordsperline=9, escapeFunction=exit)
+    dialogo = Dialogue(updateFunction=render, pos=(0, 0), wh=(300, 400), debug=False, background="Red", colorshadow="Black", shadowdistance=6, size_char=12, wordsperline=9, escapeFunction=exit)
     timer = Timer(time = (0, 5), molt_sec = 1, myfunction=lambda: print("Vengo richiamato una volta sola"), color = "Red", reversed=True, removeEvents=True)
     testo = PrintLine(size=20, color="Black")
     
