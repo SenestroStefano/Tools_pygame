@@ -9,7 +9,7 @@ screen_resolution = (490, 270)
 FPS = 60
 
 
-DEF = Defaults(
+DEF = GameManager(
 
     window_resolution = screen_resolution,
     fps = FPS,
@@ -27,20 +27,24 @@ def inizializza():
 
     showComands = True
     
-    dialogo = Dialogue(updateFunction=render, pos=(0, 0), wh=(300, 400), debug=False, background="Red", colorshadow="Black", shadowdistance=6, size_char=12, wordsperline=9, escapeFunction=exit)
-    timer = Timer(time = (0, 5), molt_sec = 1, myfunction=lambda: print("Vengo richiamato una volta sola"), color = "Red", reversed=True, removeEvents=True)
+    dialogo = Dialogue(updateFunction=render, pos=(0, 0), debug=False, background="Yellow", text_color="Green", colorshadow="Black", shadowdistance=6, size_char=12, wordsperline=9, escapeFunction=exit)
+    timer = Timer(time = (0, 50), molt_sec = 1, myfunction=lambda: print("Vengo richiamato una volta sola"), color = "Red", reversed=False, removeEvents=True)
     testo = PrintLine(size=20, color="Black")
     
     Myinputs()
 
 def Myinputs():
     global mykeys
-    mykeys = InputKeys()
+    mykeys = InputKeys(True)
     
+    mykeys.Add("Debug", ["f1"], DEF.ShowDebug)
+    mykeys.Add("Console", ["f3"], DEF.ShowConsole)
     mykeys.Add("Dialogo stampa", ["a", "b", "c"])
     mykeys.Add("Esci", ["escape"])
     mykeys.Add("Aumenta Molt", ["+"])
     mykeys.Add("Diminuisci Molt", ["-"])
+    mykeys.Add("Aumenta Time", [","])
+    mykeys.Add("Diminuisci Time", ["."])
 
 
 def render():
@@ -50,6 +54,10 @@ def render():
     timer.Start()
     timer.Show()
     testo.Print("FPS: "+str( int((DEF.getActualFps(2) * DEF.getDeltaTime())) ))
+    
+    DEF.ConsoleLog(text= round(DEF.getActualFps(),2), timelife=20)
+    DEF.ConsoleLog(text= round(DEF.getTicks(),2), timelife=20)
+    
 
 def pre_conditions():
     timer.AddEvent((8, 55), lambda: dialogo.Print("Evento richiamato"))
@@ -68,26 +76,32 @@ def conditions():
 def comands():
     global mainloop
     
-    for event in py.event.get():
-            
-        if event.type == py.QUIT:
+        
+    if DEF.Event.type == py.QUIT:
+        mainloop = not mainloop
+        
+    if DEF.Event.type == py.KEYDOWN:
+        key = DEF.Event.key
+        
+        if mykeys.Check("Esci", key):
             mainloop = not mainloop
-            
-        if event.type == py.KEYDOWN:
-            key = event.key
-            
-            if mykeys.Check("Esci", key):
-                mainloop = not mainloop
-            
-            if mykeys.Check("Dialogo stampa", key):
-                text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.Nunc purus nisl, ornare vitae quam et, rutrum egestas lorem.Aenean consectetur magna ut volutpat scelerisque.Nulla iaculis luctus elit at rhoncus.Aenean aliquam dignissim urna ut consectetur.Pellentesque et ante dui.Nam efficitur convallis enim, vitae pulvinar metus vulputate sed. Proin eget fringilla tellus. Suspendisse semper at ante ac malesuada."
-                dialogo.Print(text)
+        
+        if mykeys.Check("Dialogo stampa", key):
+            text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.Nunc purus nisl, ornare vitae quam et, rutrum egestas lorem.Aenean consectetur magna ut volutpat scelerisque.Nulla iaculis luctus elit at rhoncus.Aenean aliquam dignissim urna ut consectetur.Pellentesque et ante dui.Nam efficitur convallis enim, vitae pulvinar metus vulputate sed. Proin eget fringilla tellus. Suspendisse semper at ante ac malesuada."
+            dialogo.Print(text)
 
-            if mykeys.Check("Aumenta Molt", key, True):
-                DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()+1, time_multiplier=DEF.getTimeMolt()-1, defaultfunctionReload = inizializza)
-                
-            if mykeys.Check("Diminuisci Molt", key, True):
-                DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()-1, time_multiplier=DEF.getTimeMolt()+1, defaultfunctionReload = inizializza)
+        if mykeys.Check("Aumenta Molt", key, True):
+            DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()+1, defaultfunctionReload = inizializza)
+            
+        if mykeys.Check("Diminuisci Molt", key, True):
+            DEF.setMultipliers(screen_multiplier=DEF.getScreenMolt()-1, defaultfunctionReload = inizializza)
+
+        if mykeys.Check("Aumenta Time", key, True):
+            DEF.setMultipliers(time_multiplier=DEF.getTimeMolt()+1, defaultfunctionReload = inizializza)
+            
+        if mykeys.Check("Diminuisci Time", key, True):
+            DEF.setMultipliers(time_multiplier=DEF.getTimeMolt()-1, defaultfunctionReload = inizializza)
+
 
 def exit():
     DEF.Quit()
@@ -99,7 +113,7 @@ def main():
     
     while mainloop:
         
-        comands()
+        DEF.CheckComands(comands)
         
         render()
         conditions()

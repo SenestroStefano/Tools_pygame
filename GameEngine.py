@@ -62,7 +62,12 @@ def colored(color, text):
     
     return "\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(rgb[0], rgb[1], rgb[2], text)
 
-class Defaults():
+
+GE = None
+AM = None
+Inputs = list()
+
+class GameManager():
     """       
 # Defaults
 --------        
@@ -71,7 +76,7 @@ class Defaults():
 ----------------------------------------------------------------------------------------
 - easy way to access a very common used function of pygame"""
     
-    def __init__(self, window_resolution: tuple, fps: int, screen_molt = 1, time_molt = 1):
+    def __init__(self, window_resolution: tuple, screen_num: int = 4, fps: int = 30, screen_molt: float = 1.0, time_molt = 1, minmax_res: tuple = (1, 2), actual_resmolt: int = 1):
         """       
 # Defaults
 --------        
@@ -80,37 +85,39 @@ class Defaults():
 ----------------------------------------------------------------------------------------
 - easy way to access a very common used function of pygame"""
 
-        global GE
-        GE = self
+
+        import traceback, pygame
+        (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
         
-        def_name = "Defaults"
-        if GE == self:
-            import traceback, pygame
-            (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
-            def_name = text[:text.find('=')].strip()
-            print(colored(("#7ccbaa"), "\n"+str(GE.__class__.__name__)+"() --> "+str(def_name)+" | class created correctly!\n"))
-            pygame.init()
-            
-            print(colored(("#53754d"), "____________\n"))
-            print(colored(("#53754d"), "DEBUG: \n\n"))
-            
-        try:
-            a = screen_molt//1
-        except:
-            a = 1
-        try:
-            b = time_molt//1
-        except:
-            b = 1
-            
+        def_name = text[:text.find('=')].strip()
+        self.__setClass(def_name)
+        
         # Errori
-        GE.__CheckErrors(Defaults, def_name, 0)
+        GE.__CheckErrors(GameManager, def_name, 0)
         GE.__CheckErrors(window_resolution, def_name, 1)
         
+        a = screen_molt
+        b = time_molt
+        
+        
         import time
-        self.__hw = window_resolution
+        
+        self.__screenNum = screen_num
+        self.__minHW = window_resolution[0] * minmax_res[0], window_resolution[1] * minmax_res[0]
+        self.__maxHW = window_resolution[0] * minmax_res[1], window_resolution[1] * minmax_res[1]
+        
         self.__dfWH = pygame.display.Info().current_w, pygame.display.Info().current_h
+        
+        self.__origDfWH = self.__dfWH[0] / self.__screenNum, self.__dfWH[1] / self.__screenNum
+        
         self.__df_fps = fps
+        self.__df_molt = screen_molt
+
+        self.__div = int(self.__df_molt) if not int(self.__df_molt/2) else 0
+        self.__prec_molt = 1
+        self.__screen_molt = 1
+        self.__created = True
+        self.__window_resolution = window_resolution
         
         self.setScreenMolt(a)
         self.setTimeMolt(b)
@@ -123,6 +130,268 @@ class Defaults():
         
         self.__Ticks = 0
         self.__clock = self.getClock()
+        
+        c = actual_resmolt if actual_resmolt > 0 and actual_resmolt <= self.__screenNum else 1
+        self.setMultipliers(c)
+        
+        self.__mouse_pos = tuple
+        
+        self.__Debug = False
+        
+        self.__list_textDebug = list()
+        self.__printLine = list()
+        self.__list_BannedElement = list()
+        self.__delay_dis = list()
+        self.__list_seconds = list()
+        self.__num_print = 0
+        self.__show_console = False
+        
+        self.__myfunct = None
+        self.Event = None
+        self.__line = ""
+        self.Global_variables = dict()
+        
+        self.__Log()
+        
+        
+    def __setClass(self, name):
+        global GE
+        GE = self
+        
+        def_name = "Defaults"
+        if GE == self:
+            
+            t = "\n"+str(GE.__class__.__name__)+"() --> "+str(name)+" | class created correctly!\n"
+            c = "#7ccbaa"
+            print(colored((c), t))
+            pygame.mixer.pre_init()
+            pygame.init()
+            
+            print(colored(("#53754d"), "____________\n"))
+            print(colored(("#53754d"), "DEBUG: \n\n"))
+        return def_name
+        
+        
+        
+    def __Log(self):
+        self.__debug_pos = self.getScreenResolution()[0] - 135 * self.getScreenMolt(), 0
+        self.__debug_distance_line = 80 * self.getScreenMolt(), 20 * self.getScreenMolt()
+        
+        
+        self.__bg_debug = "#383434"
+        
+        self.__debug_print = PrintLine( 
+                    size = 14,
+                    colorshadow="#369124",
+                    color="#3ebd25",
+                    backgroundcolor= self.__bg_debug,
+                    defaultText = "Debug - Text:".upper(),
+                    shadowdistance= 5,
+                    alignment="left"
+                
+                )
+        
+        self.__debug_pos = (self.getScreenResolution()[0] - self.__debug_print.getLineSize()[0], 0)
+        self.__debug_print.setPos(self.__debug_pos)
+        
+    
+    def ShowConsole(self, flag: bool = None):
+        if self.__Debug:
+            self.__show_console = flag if flag != None else not self.__show_console
+    
+    def ShowDebug(self, flag: bool = None):
+        self.__Debug = flag if flag != None else not self.__Debug
+        
+    def __getStateDebug(self):
+        return self.__Debug
+    
+    def __destroyLastElement(self):
+        if len(self.__list_textDebug) > 0:
+            if self.__line in self.__list_textDebug:
+                self.__list_BannedElement.append(self.__line)
+                
+    def isDebugging(self):
+        return self.__Debug
+    
+    def ConsoleLog(self, text, text_color: str = None, backgroundColor: str = None, size: str = 5, haslife = True, timelife: float = 8.0):
+        if self.__show_console:
+            t = text if text != None else "Invalid Text input"
+            c = text_color if text_color != None else "Green"
+            b = backgroundColor if backgroundColor != None else None
+            
+            import traceback
+            (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+            
+            text = "".join(text.split())
+            def_name = text[:text.find(',')].strip().split("Log(")[1]
+            
+            if "text" in text:
+                def_name = text[:text.find(',')].strip().split("text=")[1].strip("\"")
+                
+            order = 0
+            if def_name in self.__list_textDebug:
+                order = self.__list_textDebug.index(def_name) + 1
+            
+            if len(self.__delay_dis) >= order + 1: 
+                self.__delay_dis[order - 1] = Delay(timelife, self.__destroyLastElement)
+            else:
+                self.__delay_dis.append(Delay(timelife, self.__destroyLastElement))
+        
+        
+            line = PrintLine(   
+                                pos = (0, order+1),
+                                colorshadow="Black",
+                                backgroundcolor = b,
+                                color = c,
+                                size = size,
+                                defaultText = t,
+                                shadowdistance= 4,
+                                alignment="left"
+                            
+                            )
+            
+            pos = (self.getScreenResolution()[0] - self.__debug_print.getLineSize()[0]/2 - line.getLineSize()[0]/2,
+                        line.getPos()[1] * self.__debug_distance_line[1] - self.__debug_distance_line[1])
+            
+            line.setPos(pos)
+            
+            delay = self.__delay_dis[order - 1]
+        
+            
+            seconds = PrintLine(
+                
+                                pos = (0, order+1),
+                                colorshadow="Black",
+                                color = "#6c6a7b",
+                                size = size,
+                                shadowdistance= 4,
+                                defaultText = str(delay.getRemaining()) + " sec",
+                                alignment="left"
+                            )
+            
+            seconds.setPos((self.getScreenResolution()[0] - seconds.getLineSize()[0], 
+                            pos[1]))
+            
+            
+            line_number = "- line: " + str(line_number)
+            
+            number_line = PrintLine(
+                
+                                pos = (0, order+1),
+                                colorshadow="#c5c529",
+                                color = "#f9f931",
+                                size = size,
+                                shadowdistance= 4,
+                                defaultText = line_number,
+                                alignment="left"
+                            
+                            )
+            
+            number_line.setPos((self.__debug_pos[0], 
+                                pos[1]))
+            
+            
+            if len(self.__printLine) > self.__num_print:
+                self.__num_print = len(self.__printLine)
+            
+            
+            if self.__list_textDebug.count(def_name) > 1 or def_name in self.__list_BannedElement:
+                
+                if def_name in self.__list_textDebug:
+                    self.__printLine.pop(self.__list_textDebug.index(def_name))
+                    self.__list_seconds.pop(self.__list_textDebug.index(def_name))
+                    self.__list_textDebug.remove(def_name)
+            
+            elif self.__list_textDebug.count(def_name) <= 1:
+                self.__list_textDebug.append(def_name)
+                self.__printLine.append(line)
+                
+                self.__list_seconds.append([seconds, delay, haslife, number_line, line_number])
+            
+            
+            if haslife:
+                if def_name in self.__list_textDebug:
+                    self.__line = def_name
+                    
+                    for delay in self.__delay_dis:
+                        delay.Start()
+        
+    def __DebugWindow(self):
+        
+        color = "Green" if self.getActualFps() >= self.getFps() / self.getTimeMolt() else "Red"
+        
+        
+        VIEW = PrintLine(
+                    pos = (0,0), 
+                    color = "White",
+                    size = 10,
+                    backgroundcolor = "#88883c",
+                    alignment="left"
+                
+                )
+        
+        VIEW.Print("Resolution: "+str(self.getScreenResolution()[0])+"x"+str(self.getScreenResolution()[1]))
+        
+        
+        SCREEN_MOLT = PrintLine(
+                    pos = (0, VIEW.getPos()[1] + VIEW.getLine().get_size()[1]), 
+                    color = "White",
+                    size = 8,
+                    backgroundcolor = "#2d8f9a",
+                    alignment="left"
+                
+                )
+        
+        SCREEN_MOLT.Print("Screen Molt: "+str(self.getScreenMolt()))
+        
+        
+        FPS = PrintLine(
+                    pos = (VIEW.getPos()[0] + VIEW.getLine().get_size()[0], VIEW.getPos()[1]), 
+                    color = "White",
+                    size = 10,
+                    backgroundcolor = color,
+                    alignment="left"
+                
+                )
+        
+        FPS.Print("FPS: "+str(self.getActualFps(2)))
+        
+        
+        TIME_MOLT = PrintLine(
+                    pos = (FPS.getPos()[0], FPS.getPos()[1] + FPS.getLine().get_size()[1]), 
+                    color = "White",
+                    size = 8,
+                    backgroundcolor = "#4d6aa3",
+                    alignment="left"
+                
+                )
+        
+        TIME_MOLT.Print("Time Molt: "+str(self.getTimeMolt()))
+        
+        
+        if self.__show_console:
+            self.__Log()
+            
+            if len(self.__printLine) > 0:
+                
+                size = self.__debug_print.getLine().get_rect()
+                rect = pygame.Rect(self.__debug_pos[0], self.__debug_pos[1], size[2], ((self.__debug_distance_line[1]/2) * (self.__num_print + 1)) * 2)
+                pygame.draw.rect(self.getScreen(), self.__bg_debug, rect)
+                self.__debug_print.Print()
+            
+            self.__debug_pos = (self.getScreenResolution()[0] - self.__debug_print.getLineSize()[0], 0)
+            self.__debug_print.setPos(self.__debug_pos)
+                
+                
+            for line in self.__printLine:
+                line.Print()
+                
+            for line in self.__list_seconds:
+                if line[2]:
+                    line[0].Print(str(line[1].getRemaining()) + " sec")
+                    
+                line[3].Print(line[4])
+                
         
     def Quit(self):
         import sys
@@ -137,6 +406,19 @@ class Defaults():
     def getCenterScreen(self):
         return tuple(ris/2 for ris in self.getScreenResolution())
     
+    def getDivisorScreen(self, divisor):
+        return tuple(ris/divisor for ris in self.getScreenResolution())
+    
+    def CheckComands(self, funct: classmethod = None):
+        self.__myfunct = funct if funct != None else None
+    
+    def setFullScreen(self):
+        self.__screen_molt = self.__screenNum - 1
+        self.setMultipliers(screen_multiplier = self.__screenNum)
+        
+    def getMousePos(self):
+        return self.__mouse_pos
+        
     def Update(self):
         """ 
 
@@ -146,16 +428,39 @@ class Defaults():
 
 
 """     
-        import time
+        import time, pygame, sys
         self.__delta_time = time.time() - self.__last_time
         self.__delta_time *= self.getFps()
         self.__last_time = time.time()
+        
+        self.__mouse_pos = pygame.mouse.get_pos()
 
         self.__Ticks += 1 / self.getFps()
         if int(self.__Ticks) > 1000:
             self.__Ticks = 0
+            
+        if AM != None:
+            for name in list(AM.Volume.keys()):
+                AM.setVolume(name, AM.getVolume(name))
+            
+        if self.__getStateDebug():
+            self.__DebugWindow()
+            
         pygame.display.flip()
         self.__clock.tick(self.getFps())
+            
+        
+        for event in pygame.event.get():
+            self.Event = event
+            
+            if event.type == pygame.KEYDOWN:
+                for input in Inputs:
+                    functions = list(input.ReturnKeys().keys())
+                    for func in functions:
+                        input.Check(func, event.key)
+            
+            if self.__myfunct != None:
+                self.__myfunct()
         
     def getTime(self):
         return pygame.time.get_ticks()
@@ -189,10 +494,13 @@ class Defaults():
             return True
         return False
     
+    
+    
     def setScreen(self, resolution, fullscreen = False):
         if fullscreen:
             self.__game_window = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
         else:
+            pygame.display.init()
             self.__game_window = pygame.display.set_mode(resolution)
     
     def getScreen(self):
@@ -205,9 +513,16 @@ class Defaults():
         if pygame_display_screen_mode >= self.__dfWH:
             var = self.__dfWH
             old_screen_res = (pygame_display_screen_mode[0] / self.getScreenMolt() + pygame_display_screen_mode[1] / self.getScreenMolt()) / 2
-            screen_res = (self.__dfWH[0] / old_screen_res + self.__dfWH[1] / old_screen_res)//2
+            screen_res = (var[0] / old_screen_res + var[1] / old_screen_res)//2
             self.setScreenMolt(screen_res)
             a = True
+            
+        if pygame_display_screen_mode <= self.__minHW:
+            var = self.__minHW
+            old_screen_res = (pygame_display_screen_mode[0] / self.getScreenMolt() + pygame_display_screen_mode[1] / self.getScreenMolt()) / 2
+            screen_res = (var[0] / old_screen_res + var[1] / old_screen_res)//2
+            self.setScreenMolt(screen_res)
+        
         
         self.__window_resolution = var
         self.setScreen(self.__window_resolution, a)
@@ -225,31 +540,53 @@ class Defaults():
         return round(self.__clock.get_fps(), round_value)
     
     def setScreenMolt(self, screen_multiplier: int):
-        self.__screen_molt = screen_multiplier
-    
+        self.__prec_molt = self.__screen_molt if self.__created else self.__screen_molt * 1.3
+        if self.__div and self.__created:
+            self.__screen_molt = (2 / self.__div) / screen_multiplier
+            self.__created = False
+        else:
+        
+            self.__screen_molt = screen_multiplier
+            if not self.__created:
+                self.__screen_molt = screen_multiplier / 1.3
+        
+        
     def setMultipliers(self, screen_multiplier: int = 0, time_multiplier: int = 0, defaultfunctionReload: classmethod = None):
         
         s = screen_multiplier if screen_multiplier != 0 else self.getScreenMolt()
         d = time_multiplier if time_multiplier != 0 else self.getTimeMolt()
         
+        w, h = self.__minHW 
+        Temp_Res = (w * s, h * s)
+        
+        if Temp_Res > self.__dfWH:
+            self.setScreenResolution((w * self.__screenNum, h * self.__screenNum))
+            self.setScreenMolt(self.__screenNum)
+            
         if s != self.getScreenMolt():
-            self.setScreenMolt(s)
-            w, h = self.__hw 
-            self.setScreenResolution((w * s, h * s))
+            self.setScreenResolution(Temp_Res)
+            self.setScreenMolt(s if s <= self.__screenNum else self.__screenNum)
             
             if defaultfunctionReload != None: 
                 defaultfunctionReload()
                 print(colored("#384935","\n RESOLUTION --> "+str(self.getScreenResolution())+" | - Resolution of screen and of the components ( MOLT = "+str(self.getTimeMolt())+" ) has successfully been changed!\n"))
             else:
                 print(colored("#384935","\n RESOLUTION --> "+str(self.getScreenResolution())+" | - Resolution of screen has successfully been changed!\n"))
-        
+            
+            
         if d != self.getTimeMolt():
-            self.setTimeMolt(d if d <= 4 else 4)
+            self.setTimeMolt(d if d <= self.__screenNum else self.__screenNum)
             self.setFps(self.__df_fps)
             print(colored("#748071","\n FPS --> "+str(self.getFps())+" | - FPS have successfully been changed!\n"))
-    
+        
     def getScreenMolt(self):
-        return self.__screen_molt
+        return round(self.__screen_molt, 2)
+    
+    def getIntScreenMolt(self):
+        return int(self.__screen_molt)
+    
+    def getPrecScreenMolt(self):
+        return self.__prec_molt
     
     def setTimeMolt(self, time_molt: int):
         self.__time_molt = time_molt
@@ -387,6 +724,15 @@ class Delay():
         self.__increment = 1
         self.__function = myfunction
         self.__flag = True
+        
+    def getActualSecond(self):
+        return self.__min // self.__FPS
+
+    def getMaxSecond(self):
+        return self.__max/self.__FPS
+
+    def getRemaining(self):
+        return self.getMaxSecond() - self.getActualSecond()
 
     def Start(self):
         """ 
@@ -527,16 +873,16 @@ class Timer():
             value =  60 * GE.getFps()
             if self.__reversed:
 
-                self.__seconds -= self.__decrement * GE.getDeltaTime()
-                self.__cicles -= self.__decrement * GE.getDeltaTime()
+                self.__seconds -= (self.__decrement * GE.getDeltaTime()) / GE.getTimeMolt()
+                self.__cicles -= (self.__decrement * GE.getDeltaTime()) / GE.getTimeMolt()
 
                 if self.__seconds <= 0:
                     self.__seconds = value
                     self.__minutes -= 1
             else:
 
-                self.__seconds += self.__decrement * GE.getDeltaTime()
-                self.__cicles += self.__decrement * GE.getDeltaTime()
+                self.__seconds += (self.__decrement * GE.getDeltaTime()) / GE.getTimeMolt()
+                self.__cicles += (self.__decrement * GE.getDeltaTime()) / GE.getTimeMolt()
     
                 if self.__seconds > value:
                     self.__seconds = 0
@@ -611,7 +957,7 @@ class Timer():
             # PROPORZIONE
 
             # (secondi passati * time_molt) / totaleFPS --> per ottenere il moltiplicatore
-            molt = int((secs * GE.getTimeMolt()) / GE.getFps() * GE.getDeltaTime())
+            molt = int(secs / GE.getFps() * GE.getDeltaTime())
 
             # secondi passati - moltiplicatore * totale di sec in un minuto --> per ottenere i secondi da aggiungere al timer
             # (in caso rimanesse la somma sotto al minuto)
@@ -621,13 +967,13 @@ class Timer():
             # (in caso la somma e' superiore al minuto)
             d = (self.__getSeconds() + var) - min
             
-            self.__seconds += var * GE.getFps() * GE.getDeltaTime()
+            self.__seconds += var
 
             if self.__getSeconds() > min:
-                self.__seconds = d * GE.getFps() * GE.getDeltaTime()
+                self.__seconds = d
     
         else:
-            self.__seconds += secs * GE.getFps() * GE.getDeltaTime()
+            self.__seconds += secs
     
         if self.__getSeconds() > min + 1:
             self.__seconds = 0
@@ -654,7 +1000,7 @@ class Timer():
 - ### Output --> pygame.font.render
 
 """
-        text = pygame.font.Font(self.__font, self.__size).render((self.__text1+str(self.__minutes)+str(self.__text2)+str(int(self.__seconds/GE.getFps()))), True, self.__color)
+        text = pygame.font.Font(self.__font, self.__size).render((self.__text1+str(self.__getMinutes())+str(self.__text2)+str(int(self.__getSeconds()))), True, self.__color)
         if self.__pos == None: self.__pos = (GE.getScreen().get_width()/2 - text.get_width()/2, 35 * GE.getScreenMolt())
         GE.getScreen().blit(text, self.__pos)
 
@@ -668,7 +1014,7 @@ class Timer():
         self.__font = font
 
     def __getSeconds(self):
-        return round(self.__seconds / GE.getFps(), 2)
+        return round(self.__seconds / (GE.getFps() / GE.getTimeMolt()), 2)
         
     def __getMinutes(self):
         return self.__minutes
@@ -744,7 +1090,7 @@ class PrintLine():
 
 """
         self.__pos = pos
-        self.__text = defaultText
+        self.__text = str(defaultText) 
         self.__size = size * int(GE.getScreenMolt() + 0.9)
         self.__alignment = alignment
         self.__font = font
@@ -764,7 +1110,7 @@ class PrintLine():
         self.__line = pygame.font.Font(self.__font, self.__size).render((self.__text), True, self.__color, self.__bg)
     
     def setPos(self, pos: tuple = (0, 0)):
-        self.__pos = (pos[0] * GE.getScreenMolt(), pos[1] * GE.getScreenMolt())
+        self.__pos = pos if (0,0) != tuple else GE.getScreenResolution()
     
     def getPos(self):
         return self.__pos
@@ -775,7 +1121,13 @@ class PrintLine():
     def getColor(self):
         return self.__color
     
+    def setSize(self, size):
+        self.__size = size * GE.getIntScreenMolt()
+    
     def getSize(self):
+        return self.__size
+    
+    def getLineSize(self):
         return self.__line.get_size()
 
     def Print(self, text: str = None):
@@ -787,12 +1139,19 @@ class PrintLine():
 - ### No parametres = str "Default Value"
 
 """
-        if text != None and type(text) == str: self.__text = text
+        if text != None and type(text) == str: self.__text = str(text)
         self.__Print()
+
+
+    def getLine(self):
+        return self.__line
+
 
     def __Print(self):
         self.__line = pygame.font.Font(self.__font, self.__size).render((self.__text), True, self.__color, self.__bg)
         text = self.__line
+        
+        
         
         position = self.__pos
         point = self.__pos
@@ -808,7 +1167,7 @@ class PrintLine():
             shadow = pygame.font.Font(self.__font, self.__size).render((self.__text), True, self.__colorshadow, self.__bg)
             distance = self.__shadow_distance * GE.getScreenMolt()
             
-            GE.getScreen().blit(shadow, (position[0], position[1] + self.__size*distance/100))
+            GE.getScreen().blit(shadow, (position[0] + self.__size*distance/500, position[1] + self.__size*distance/200))
         
         GE.getScreen().blit(text, position)
         
@@ -945,7 +1304,9 @@ class Dialogue():
             def_name = text[:text.find('=')].strip().split(".")[0]
             length = len(self.__text) - self.__charmax
             self.__text = self.__text[:self.__charmax]
-            self.__do.Once(lambda: print(colored("Yellow", "\nline "+str(line_number)+" | "+def_name+".Print(\"Your Text\") --> Note: Text shorten cause too long!! (-"+str(length)+" char)")))
+            c = "Yellow"
+            t = "\nline "+str(line_number)+" | "+def_name+".Print(\"Your Text\") --> Note: Text shorten cause too long!! (-"+str(length)+" char)"
+            self.__do.Once(lambda: print(colored(c, t)))
         
         self.__incr = self.__def_incr
         
@@ -955,20 +1316,18 @@ class Dialogue():
                 if self.__update_funct != None: self.__update_funct()
             except RecursionError:
                 import sys
-                print(colored("#ff0000", "\nRecursionError: You need to call Dialogue() class in another function to work properly!"))
-                sys.exit()
+                raise RecursionError(colored("#ff0000", "\nRecursionError: You need to call Dialogue() class in another function to work properly!"))
             
-            for event in pygame.event.get():
-                
-                if event.type == pygame.QUIT:
-                    import sys
-                    sys.exit()
             
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
+            def comands():    
+                if GE.Event.type == pygame.QUIT:
+                    GE.Quit()
+            
+                if GE.Event.type == pygame.KEYDOWN:
+                    if GE.Event.key == pygame.K_ESCAPE:
                         if self.__escape_funct != None: self.__escape_funct()
                     
-                    if event.key == pygame.K_SPACE:
+                    if GE.Event.key == pygame.K_SPACE:
                         if self.__flag_new and self.__flag:
                             self.__flag_new = False
                             self.__finished = True
@@ -981,6 +1340,8 @@ class Dialogue():
                         self.__flag = not self.__flag
                         self.__incr = 18 / GE.getTimeMolt() * GE.getDeltaTime()
                         
+                        
+            GE.CheckComands(comands)
             self.__appendText()
         
             if not "." in self.__background and self.__background != None: 
@@ -1094,8 +1455,7 @@ class Dialogue():
             else:
                 self.__flag_new = True
                 
-            
-            if line.getPos()[0] + line.getSize()[0] + self.__ot*2 > self.__pos[0] + self.__wh[0]:
+            if line.getPos()[0] + line.getLine().get_width() + self.__ot*2 > self.__pos[0] + self.__wh[0]:
                             
                 if self.__wordlimit - 1 >= 2:
                     self.__wordlimit -= 1
@@ -1120,7 +1480,7 @@ class InputKeys():
 
     """
     
-    def __init__(self):
+    def __init__(self, isglobal: bool = False, debug: bool = False, ):
         """
 # InputKeys
 ----------------------------------------------------------------------------------------
@@ -1129,11 +1489,20 @@ class InputKeys():
 
         """
         self.__dict = {}
+        self.__functionDict = {}
         self.__do = Do()
         self.__NotfoundValues = []
+        
+        self.__debug = debug
 
+        if isglobal:
+            Inputs.append(self)
+        
+        import traceback
+        (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+        self.__def_name = text[:text.find('=')].strip()    
     
-    def Add(self, name: str = "default", commandlist : list = []):
+    def Add(self, name: str = "default", commandlist : list = [], function = None):
         """
 # Add
 ----------------------------------------------------------------------------------------
@@ -1142,6 +1511,7 @@ class InputKeys():
 
         """
         self.__dict[name.lower()] = commandlist if type(commandlist) == list else [commandlist]
+        self.__functionDict[name.lower()] = (function if function != None else (lambda: print(colored("Red", "No function has been set yet!"), GE.ConsoleLog("No function has been set yet!", "Red"))) if self.__debug else None)
     
     def Check(self, name: str, key : classmethod, holded: bool = False):
         """
@@ -1155,13 +1525,23 @@ class InputKeys():
         key_pressed = pygame.key.name(key)
         key_holded = True if holded else bool(pygame.key.get_pressed().count(1))
         
+        import traceback
+        
         if not name.lower() in self.__NotfoundValues:
             self.__do = Do()
             
         if name.lower() in self.__dict.keys():
-            return (True if key_pressed in self.__dict[name.lower()] and key_holded else False)
+            if key_pressed in self.__dict[name.lower()] and key_holded:
+                self.__functionDict[name.lower()]() if self.__functionDict[name.lower()] != None else 0
+                
+                if self.__debug:
+                    t = " "+str(self.__def_name)+" | - " +str(name.lower())+" --> "+str(self.__functionDict[name.lower()].__name__)+"()\n"
+                    c = "#6b4040"
+                    print(colored(c, t))
+                    GE.ConsoleLog(t, c)
+                return True
+            return False
         else:
-            import traceback
             (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
             def_name = text[:text.find('=')].strip()
             self.__do.Once(lambda: print(colored(("#faf676"),"\nline "+str(line_number)+" | "+str(def_name)+".Check("+name+") --> Note: name \""+name+"\" has not been registered!\n")))
@@ -1197,7 +1577,88 @@ class InputKeys():
         return self.__dict if found else self.__NotfoundValues
         
 
-
+class AudioManager():
+    def __init__(self, MaxVolume: int = 10, Default_Values: tuple = (5, 0)):
+        self.setMaxVolume(MaxVolume)
+        
+        a = (Default_Values[0] * self.getMaxVolume() // 10)
+        b = (Default_Values[1] * self.getMaxVolume() // 10) 
+        
+        self.__GvolumeS = a
+        self.__GvolumeM = b
+        
+        self.Volume = {}
+        self.Sounds = {}
+        self.Music = {}
+        
+        global AM
+        AM = self
+        
+        
+    def getVolume(self, name):
+        return self.Volume[name] if name in list(self.Volume.keys()) else None
+        
+    def setVolume(self, name: str, volume: int):
+        if self.Volume[name] <= self.getMaxVolume() and volume <= self.getMaxVolume():
+            
+            if name in list(self.Sounds.keys()):
+                self.Volume[name] = volume
+                self.Sounds[name].set_volume(volume * self.__GvolumeS)
+                return
+                
+            if name in list(self.Music.keys()):
+                self.Volume[name] = volume
+                self.Music[name].set_volume(volume * self.__GvolumeM)
+                return
+            
+            
+    def isMaxVolume(self, Value):
+        return True if (not Value) or (Value == self.getMaxVolume()) else False
+        
+    def AddSound(self, name: str, path: list, volume: int = 1):
+        
+        self.Volume[name] = volume
+        self.Sounds[name] = pygame.mixer.Sound(path)
+        
+        self.Sounds[name].set_volume(volume * self.__GvolumeS)
+        
+        
+    def AddMusic(self, name: str, path: list, volume: int = 1):
+        if name in list(self.Sounds.keys()):
+            return
+            
+        self.Volume[name] = volume
+        self.Music[name] = pygame.mixer.Sound(path)
+        
+        self.Music[name].set_volume(volume * self.__GvolumeM)
+        
+    def setGlobalVolumeSound(self, volume):
+        self.__GvolumeS = volume
+        
+    def getGlobalVolumeSound(self):
+        return self.__GvolumeS
+    
+    def setGlobalVolumeMusic(self, volume):
+        self.__GvolumeM = volume
+            
+    def AddSoundVolume(self, volume):
+        if self.__GvolumeS + volume <= self.getMaxVolume() and self.__GvolumeS + volume >= 0:
+            self.__GvolumeS += volume
+            self.__flagMaxVolume = False
+    
+    def AddMusicVolume(self, volume):
+        if self.__GvolumeM + volume <= self.getMaxVolume() and self.__GvolumeM + volume >= 0:
+            self.__GvolumeM += volume            
+            self.__flagMaxVolume = False
+        
+    def getGlobalVolumeMusic(self):
+        return self.__GvolumeM
+        
+    def setMaxVolume(self, volume):
+        self.__MaxVolume = volume
+        
+    def getMaxVolume(self):
+        return self.__MaxVolume
 
 if __name__ != "__main__":
     print(colored(("#87CEEB"),"\r\nGameEngine 1.0 - Created by Senex03 || Welcome!!"))
