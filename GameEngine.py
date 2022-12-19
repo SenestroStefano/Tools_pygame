@@ -76,7 +76,7 @@ class GameManager():
 ----------------------------------------------------------------------------------------
 - easy way to access a very common used function of pygame"""
     
-    def __init__(self, window_resolution: tuple, screen_num: int = 4, fps: int = 30, screen_molt: float = 1.0, time_molt = 1, minmax_res: tuple = (1, 2), actual_resmolt: int = 1):
+    def __init__(self, window_resolution: tuple = (0, 0), default_window_resolution: tuple = (0, 0), screen_num: int = 4, fps: int = 30, screen_molt: float = 1.0, time_molt = 1, minmax_res: tuple = (1, 2), actual_resmolt: int = 1):
         """       
 # Defaults
 --------        
@@ -92,23 +92,33 @@ class GameManager():
         def_name = text[:text.find('=')].strip()
         self.__setClass(def_name)
         
-        # Errori
-        GE.__CheckErrors(GameManager, def_name, 0)
-        GE.__CheckErrors(window_resolution, def_name, 1)
-        
         a = screen_molt
         b = time_molt
         
         
+        self.__screenNum = screen_num if screen_num != 0 else 1
+        self.__dfWH = pygame.display.Info().current_w, pygame.display.Info().current_h
+        win_res = window_resolution if window_resolution != (0, 0) else ([dim / self.__screenNum for dim in self.__dfWH])
+        df_win_res = default_window_resolution
+        
+        # Errori
+        GE.__CheckErrors(GameManager, def_name, 0)
+        
+        
         import time
         
-        self.__screenNum = screen_num
-        self.__minHW = window_resolution[0] * minmax_res[0], window_resolution[1] * minmax_res[0]
-        self.__maxHW = window_resolution[0] * minmax_res[1], window_resolution[1] * minmax_res[1]
+        v = minmax_res[1] if self.__screenNum == minmax_res[1] else self.__screenNum
+        self.__minWH = win_res[0] * minmax_res[0], win_res[1] * minmax_res[0]
+        self.__maxWH = win_res[0] * v, win_res[1] * v
         
-        self.__dfWH = pygame.display.Info().current_w, pygame.display.Info().current_h
+        self.__mindfWH = self.__dfWH[0] / self.__screenNum, self.__dfWH[1] / self.__screenNum
         
-        self.__origDfWH = self.__dfWH[0] / self.__screenNum, self.__dfWH[1] / self.__screenNum
+        
+        self.__listofresolutions = [(win_res[0] * (n+1), win_res[1] * (n+1)) for n in range(self.__screenNum - 1)]
+        self.__listofresolutions.append(self.__dfWH)
+        
+        self.__listofscreenmultiplayer = [(res[0] / (win_res[0] if df_win_res == (0, 0) else df_win_res[0]) + res[1] / (win_res[1] if df_win_res == (0, 0) else df_win_res[1]))/2 for res in self.__listofresolutions]
+        
         
         self.__df_fps = fps
         self.__df_molt = screen_molt
@@ -117,12 +127,12 @@ class GameManager():
         self.__prec_molt = 1
         self.__screen_molt = 1
         self.__created = True
-        self.__window_resolution = window_resolution
+        self.__window_resolution = win_res
         
         self.setScreenMolt(a)
         self.setTimeMolt(b)
-        self.setScreenResolution((window_resolution[0] * screen_molt, 
-                                  window_resolution[1] * screen_molt))
+        self.setScreenResolution((win_res[0] * screen_molt, 
+                                  win_res[1] * screen_molt))
         self.setFps(fps)
         
         self.__last_time = time.time()
@@ -511,18 +521,7 @@ class GameManager():
         
         a = False
         if pygame_display_screen_mode >= self.__dfWH:
-            var = self.__dfWH
-            old_screen_res = (pygame_display_screen_mode[0] / self.getScreenMolt() + pygame_display_screen_mode[1] / self.getScreenMolt()) / 2
-            screen_res = (var[0] / old_screen_res + var[1] / old_screen_res)//2
-            self.setScreenMolt(screen_res)
             a = True
-            
-        if pygame_display_screen_mode <= self.__minHW:
-            var = self.__minHW
-            old_screen_res = (pygame_display_screen_mode[0] / self.getScreenMolt() + pygame_display_screen_mode[1] / self.getScreenMolt()) / 2
-            screen_res = (var[0] / old_screen_res + var[1] / old_screen_res)//2
-            self.setScreenMolt(screen_res)
-        
         
         self.__window_resolution = var
         self.setScreen(self.__window_resolution, a)
@@ -540,39 +539,30 @@ class GameManager():
         return round(self.__clock.get_fps(), round_value)
     
     def setScreenMolt(self, screen_multiplier: int):
-        self.__prec_molt = self.__screen_molt if self.__created else self.__screen_molt * 1.3
-        if self.__div and self.__created:
-            self.__screen_molt = (2 / self.__div) / screen_multiplier
-            self.__created = False
-        else:
-        
-            self.__screen_molt = screen_multiplier
-            if not self.__created:
-                self.__screen_molt = screen_multiplier / 1.3
+        self.__prec_molt = self.__screen_molt
+        self.__screen_molt = screen_multiplier
         
         
     def setMultipliers(self, screen_multiplier: int = 0, time_multiplier: int = 0, defaultfunctionReload: classmethod = None):
         
-        s = screen_multiplier if screen_multiplier != 0 else self.getScreenMolt()
+        s = int(screen_multiplier) if screen_multiplier != 0 else self.getIntScreenMolt()
         d = time_multiplier if time_multiplier != 0 else self.getTimeMolt()
         
-        w, h = self.__minHW 
+        w, h = self.__minWH 
         Temp_Res = (w * s, h * s)
-        
-        if Temp_Res > self.__dfWH:
-            self.setScreenResolution((w * self.__screenNum, h * self.__screenNum))
-            self.setScreenMolt(self.__screenNum)
             
         if s != self.getScreenMolt():
-            self.setScreenResolution(Temp_Res)
-            self.setScreenMolt(s if s <= self.__screenNum else self.__screenNum)
+            if s-1 < len(self.__listofresolutions):
+                self.setScreenMolt(self.__listofscreenmultiplayer[s-1])
+                self.setScreenResolution(self.__listofresolutions[s-1])
             
-            if defaultfunctionReload != None: 
-                defaultfunctionReload()
-                print(colored("#384935","\n RESOLUTION --> "+str(self.getScreenResolution())+" | - Resolution of screen and of the components ( MOLT = "+str(self.getTimeMolt())+" ) has successfully been changed!\n"))
-            else:
-                print(colored("#384935","\n RESOLUTION --> "+str(self.getScreenResolution())+" | - Resolution of screen has successfully been changed!\n"))
-            
+        if defaultfunctionReload != None: 
+            defaultfunctionReload()
+            print(colored("#384935","\n RESOLUTION --> "+str(self.getScreenResolution())+" | - Resolution of screen and of the components ( MOLT = "+str(self.getScreenMolt())+" ) has successfully been changed!\n"))
+        else:
+            print(colored("#384935","\n RESOLUTION --> "+str(self.getScreenResolution())+" | - Resolution of screen has successfully been changed!\n"))
+
+        
             
         if d != self.getTimeMolt():
             self.setTimeMolt(d if d <= self.__screenNum else self.__screenNum)
@@ -608,7 +598,6 @@ class GameManager():
         elif tipo == 1:
             if type(var) != tuple:
                 sys.exit(colored("#ff0000","\n"+str(nameclass)+" | ValueRequired: You have to set the Screen in Defaults() method"))
-        
 
 class Do():
     """ 
@@ -724,6 +713,7 @@ class Delay():
         self.__increment = 1
         self.__function = myfunction
         self.__flag = True
+        self.__pause = False
         
     def getActualSecond(self):
         return self.__min // self.__FPS
@@ -734,6 +724,26 @@ class Delay():
     def getRemaining(self):
         return self.getMaxSecond() - self.getActualSecond()
 
+    def Pause(self):
+        """ 
+
+# Pause
+----------------------------------------------------------------------------------------
+- To pause the delay (set stand by the delay)
+
+"""
+        self.__pause = False
+
+    def UnPause(self):
+        """ 
+
+# UnPause
+----------------------------------------------------------------------------------------
+- To Remove the pause state
+
+"""
+        self.__pause = True
+
     def Start(self):
         """ 
 
@@ -743,7 +753,7 @@ class Delay():
 - #### Once it will be finished it would be off
 
 """
-        if self.__flag:
+        if self.__flag or not self.__pause:
             self.__min += self.__increment
 
             if int(self.__min) == self.__max:
@@ -919,12 +929,12 @@ class Timer():
 """
         self.__flag = False
 
-    def DePause(self):
+    def UnPause(self):
         """ 
 
-# Depause
+# UnPause
 ----------------------------------------------------------------------------------------
-- To set it a depause mode, so to continue
+- To set it a unpause mode, so to continue
 
 """
         self.__flag = True
@@ -1207,7 +1217,7 @@ class Dialogue():
 
 
 """
-    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, vel_text: int = 3, show_flashing = True, size_char = 12, default_text = "This is an example of Dialogue", wordsperline = None, charmax = 140, text_color = "White", colorshadow = None, shadowdistance = 2, offset = 5, debug = False, updateFunction = None, escapeFunction = None):      
+    def __init__(self, background: tuple = (180, 192, 212), pos: tuple = None, wh: tuple = None, vel_text: int = 3, show_flashing: bool = True, triangle_size = 22, offset_text: tuple = (0, 0), offset_triangle: tuple = (0, 0), offset: int = 5, size_char = 12, default_text = "This is an example of Dialogue", font : str = "freesansbold.ttf", wordsperline = None, charmax = 140, text_color = "White", colorshadow = None, shadowdistance = 2, debug = False, updateFunction = None, escapeFunction = None):      
         """ 
 
 # Dialogue
@@ -1221,18 +1231,31 @@ class Dialogue():
         import matplotlib.colors as mcol
 
         self.__ot = offset * GE.getScreenMolt()
+        self.__offset = (offset_text[0] * GE.getScreenMolt(), offset_text[1] * GE.getScreenMolt())
+        self.__offset_triangle = (offset_triangle[0] * GE.getScreenMolt(), offset_triangle[1] * GE.getScreenMolt())
         
-        if wh == None: self.__wh = (GE.getScreenResolution()[0] - self.__ot * 2, 100 * GE.getScreenMolt())
+        if wh == None: self.__wh = (GE.getScreenResolution()[0] - self.__ot * 2, 70 * GE.getScreenMolt())
         else: self.__wh = wh[0] * GE.getScreenMolt(), wh[1] * GE.getScreenMolt()
         
         if pos == None: self.__pos = (0 * GE.getScreenMolt() + self.__ot, GE.getScreenResolution()[1] - self.__wh[1])
         else: self.__pos = pos[0] * GE.getScreenMolt(), pos[1] * GE.getScreenMolt()
         
+        self.__font = font
         self.__text = default_text
         self.__text_color = text_color
+        self.__lastchars = self.__text[-5:]
         
-        if type(background) == tuple: self.__background = RGBToHex(background[0], background[1], background[2])
-        else: self.__background = background if background in mcol.cnames.keys() else mcol.to_hex(background)
+        self.__isimage = False
+        
+        self.__size_triangle = triangle_size * GE.getScreenMolt()
+        
+        if type(background) is list:
+            self.__background = background
+            self.__isimage = True
+        else:
+            if type(background) is tuple: self.__background = RGBToHex(background[0], background[1], background[2])
+            else: self.__background = background if background in mcol.cnames.keys() else mcol.to_hex(background)
+            
         
         self.__descr = ""
         self.__incr = vel_text / GE.getTimeMolt() * GE.getDeltaTime()
@@ -1242,12 +1265,12 @@ class Dialogue():
         self.__classic_sizechar = 12
         self.__wordlimit = wordsperline
         if wordsperline == None or wordsperline < 2: self.__wordlimit = (8 * 2) - int((8 * size_char) / self.__classic_sizechar)
-        self.__classic_wordlimit = 8
         self.__charmax = charmax
         self.__update_funct = updateFunction
         self.__escape_funct = escapeFunction
         self.__finished = False
-        self.__flag = False
+        self.__pressed = False
+        self.__endofthedialogue = False
         self.__show_flashing = show_flashing
         self.__flag_flash = False
         self.__shadows = (colorshadow, shadowdistance)
@@ -1264,9 +1287,20 @@ class Dialogue():
         
         self.__flag_format = False
         
-        if type(self.__background) == str: self.__background = hex2rgb(self.__background)
+        if type(self.__background) == str and not self.__isimage: self.__background = hex2rgb(self.__background)
 
         self.__rect = pygame.Rect(self.__pos[0], self.__pos[1], self.__wh[0], self.__wh[1])
+
+
+        if self.__isimage:
+            img = pygame.image.load(self.__background[0]).convert_alpha()
+            self.__img = pygame.transform.scale(img, (img.get_width() * self.__background[1] * GE.getScreenMolt(), img.get_height() * self.__background[1] * GE.getScreenMolt()))
+            
+            self.__wh = img.get_size()
+
+
+        self.__images = []
+        self.__lines = []
 
     def Print(self, text: str):
         """ 
@@ -1280,7 +1314,6 @@ class Dialogue():
 """
         
         self.__delay = 0
-        self.__flag = False
         self.__finished = False
         
         if not self.__flag_format:
@@ -1309,13 +1342,13 @@ class Dialogue():
             self.__do.Once(lambda: print(colored(c, t)))
         
         self.__incr = self.__def_incr
+        self.__lastchars = self.__text[-5:]
         
         while not self.__finished:
             
             try:
                 if self.__update_funct != None: self.__update_funct()
             except RecursionError:
-                import sys
                 raise RecursionError(colored("#ff0000", "\nRecursionError: You need to call Dialogue() class in another function to work properly!"))
             
             
@@ -1328,31 +1361,46 @@ class Dialogue():
                         if self.__escape_funct != None: self.__escape_funct()
                     
                     if GE.Event.key == pygame.K_SPACE:
-                        if self.__flag_new and self.__flag:
-                            self.__flag_new = False
+                        if self.__endofthedialogue:
                             self.__finished = True
-                            self.Print(self.__new_line)
                         
-                        if self.__flag or self.__finished:
-                            self.__finished = True
-                            self.__flag_format = False
+                        if not self.__pressed:                         
+                            if self.__flag_new:
+                                self.__flag_new = False
+                                self.Print(self.__new_line)
+                                
+                            self.__incr = (self.__def_incr * 4) / GE.getTimeMolt() * GE.getDeltaTime()
                         
-                        self.__flag = not self.__flag
-                        self.__incr = 18 / GE.getTimeMolt() * GE.getDeltaTime()
+                        self.__pressed = True
                         
                         
-            GE.CheckComands(comands)
+                        
             self.__appendText()
         
-            if not "." in self.__background and self.__background != None: 
+            if not self.__isimage and self.__background != None: 
                 self.__dark = 20; self.__dark = (self.__dark, self.__dark, self.__dark); 
                 self.__PrintBG()
             else: self.__PrintIM()
+
+            for image in self.__images:
+                GE.getScreen().blit(*image)
             
+            for line in self.__lines:
+                line.Print()
+
+            
+            self.__PrintTX()
+            
+            if self.__show_flashing: self.__RenderTriangle()
+            
+            
+            GE.CheckComands(comands)
             GE.Update()
-            
-        self.__finished = False
-            
+        
+        self.__pressed = False
+        self.__wordlimit = self.__df_wordsperline
+        self.__endofthedialogue = False
+        
         
     def __appendText(self):
         
@@ -1366,32 +1414,80 @@ class Dialogue():
         
         self.__delay += 10 / GE.getFps() * GE.getTimeMolt() * GE.getDeltaTime() * self.__incr
 
-    def __PrintBG(self):
-        pygame.draw.rect(GE.getScreen(), self.__background, self.__rect, 0, 4 * int(GE.getScreenMolt() + 0.9))
-        pygame.draw.rect(GE.getScreen(), tuple(map(lambda i, j: abs(i - j), self.__background, self.__dark)), self.__rect, 2 * int(GE.getScreenMolt() + 0.9), 4 * int(GE.getScreenMolt() + 0.9))
+
+    def AddImage(self, path: str, pos: tuple = None, multiplayer: int = 1):
+        """
+# AddImage
+----------------------------------------------------------------------------------------
+- Add a Image in the dialogue view
+
+## Args:
+
+- path: \"Mypath/myimag.png\" --> str
+
+- pos: (0, 0) --> tuple (You need to set the ScreenMolt)
+
+- multiplayer: pygame.transform.scale(img, **1) --> int
         
-        chiaro = (255 - self.__background[0], 255 - self.__background[1], 255 - self.__background[2])
+        """
         
+        p = pos if pos != None else self.__pos
         
-        size = 22 * GE.getScreenMolt()
+        img = pygame.image.load(path).convert_alpha()
+        img = pygame.transform.scale(img, (img.get_width() * multiplayer * GE.getScreenMolt(), img.get_height() * multiplayer * GE.getScreenMolt()))
+
+        self.__images.append([img, p])
+        
+    
+    def AddLine(self,**kwargs):
+        """
+# AddLine
+----------------------------------------------------------------------------------------
+- Add a Printline in the dialogue view
+
+## Args:
+
+- pos = None (You need to set the ScreenMolt), defaultText = "default text", alignment = "center", size = 25
+
+- font = 'freesansbold.ttf', color = "Green", backgroundcolor = None, colorshadow = None, 
+shadowdistance = 2, bordercolor = "Black", borderwidth = 1
+
+- showborder = False, showpoints=False, showcoords=False
+        
+        """
+        line = PrintLine(**kwargs)
+        
+        self.__lines.append(line)
+
+    def __RenderTriangle(self):
+        
+        size = self.__size_triangle
         pos = [
-                (self.__rect[0] + self.__distancex + self.__ot, self.__rect[3] + self.__rect[1] + self.__distancey - self.__ot - size), 
-                (self.__rect[0] + self.__distancex + self.__ot + size, self.__rect[3] + self.__rect[1] + self.__distancey - self.__ot - size),  
-                (self.__rect[0] + self.__distancex + self.__ot + size/2, self.__rect[3] + self.__rect[1] + self.__distancey - self.__ot - size/3.5)
+                (self.__rect[0]+ self.__offset_triangle[0] + self.__distancex + self.__ot, self.__rect[3] + self.__rect[1] + self.__offset_triangle[1] + self.__distancey - self.__ot - size), 
+                (self.__rect[0] + self.__offset_triangle[0] + self.__distancex + self.__ot + size, self.__rect[3] + self.__rect[1] + self.__offset_triangle[1] + self.__distancey - self.__ot - size),  
+                (self.__rect[0] + self.__offset_triangle[0] + self.__distancex + self.__ot + size/2, self.__rect[3] + self.__rect[1] + self.__offset_triangle[1] + self.__distancey - self.__ot - size/3.5)
                 
                 ]
         
-        chiaro_tri = tuple(map(lambda i, j: abs(i - j), self.__background, self.__dark))
+        if self.__flag_flash:
+            
+            if self.__isimage:
+                pygame.draw.polygon(GE.getScreen(), "White", pos)
+                pygame.draw.polygon(GE.getScreen(), "Grey", pos, 2 * int(GE.getScreenMolt() + 0.9))
+            else:
+                chiaro = (255 - self.__background[0], 255 - self.__background[1], 255 - self.__background[2])
+                chiaro_tri = tuple(map(lambda i, j: abs(i - j), self.__background, self.__dark))
+                pygame.draw.polygon(GE.getScreen(), tuple(map(lambda i, j: i + j//1.2, self.__background, chiaro)), pos)
+                pygame.draw.polygon(GE.getScreen(), tuple(map(lambda i, j: i + j//1.6, chiaro_tri, chiaro)), pos, 2 * int(GE.getScreenMolt() + 0.9))
         
-        if self.__show_flashing and self.__flag_flash:
-            pygame.draw.polygon(GE.getScreen(), tuple(map(lambda i, j: i + j//1.2, self.__background, chiaro)), pos)
-            pygame.draw.polygon(GE.getScreen(), tuple(map(lambda i, j: i + j//1.6, chiaro_tri, chiaro)), pos, 2 * int(GE.getScreenMolt() + 0.9))
-        
-        self.__PrintTX()
+
+    def __PrintBG(self):
+        pygame.draw.rect(GE.getScreen(), self.__background, self.__rect, 0, 4 * int(GE.getScreenMolt() + 0.9))
+        pygame.draw.rect(GE.getScreen(), tuple(map(lambda i, j: abs(i - j), self.__background, self.__dark)), self.__rect, 2 * int(GE.getScreenMolt() + 0.9), 4 * int(GE.getScreenMolt() + 0.9))
 
     def __PrintIM(self):
-        pass
-
+        GE.getScreen().blit(self.__img, self.__rect.topleft)
+        
     def __PrintTX(self):
 
         
@@ -1437,11 +1533,11 @@ class Dialogue():
             
             line = PrintLine(
                 
-                    pos = (self.__pos[0] + self.__ot*2, self.__pos[1] + self.__ot*2 + (space_line * i)), 
+                    pos = (self.__pos[0] + self.__ot*2 + self.__offset[0], self.__pos[1] + self.__ot*2 + self.__offset[1] + (space_line * i)), 
                     
                     alignment = "start", size = self.__sizechar, 
                     
-                    color=self.__text_color, 
+                    color=self.__text_color, font=self.__font,
                     
                     colorshadow=self.__shadows[0], shadowdistance=self.__shadows[1],
                     
@@ -1449,27 +1545,30 @@ class Dialogue():
                     
                 )
             
-            if line.getPos()[1] < self.__pos[1] + self.__wh[1] - self.__ot*3 and line.getPos()[0] < self.__pos[0] + self.__wh[0]:
-                line.Print(text_passed)
+            # text_passed = "Default"
+            if line.getPos()[1] + line.getLineSize()[1] < self.__pos[1] + self.__wh[1] * GE.getScreenMolt():
                 last_line = text_passed
+                self.__pressed = False
+                line.Print(text_passed)
             else:
                 self.__flag_new = True
                 
-            if line.getPos()[0] + line.getLine().get_width() + self.__ot*2 > self.__pos[0] + self.__wh[0]:
-                            
+            if line.getPos()[0] + line.getLineSize()[0] > self.__pos[0] + self.__wh[0] * GE.getScreenMolt():
+                
                 if self.__wordlimit - 1 >= 2:
                     self.__wordlimit -= 1
-
                 
                 self.__flag_format = True
         
-        if last_line != "" and self.__flag_new and text_passed[-5:] != self.__text[-5:]: 
+        
+        val = -5
+        if last_line != "" and self.__flag_new and text_passed[val:] != self.__lastchars: 
             self.__new_line = self.__text.split(last_line)[1]
         else:
             self.__flag_new = False
         
-        if text_passed[-5:] == self.__text[-5:]:
-            self.__flag = True
+        if text_passed[val:] == self.__lastchars:
+            self.__endofthedialogue = True
 
 class InputKeys():
     """
@@ -1576,7 +1675,6 @@ class InputKeys():
         """
         return self.__dict if found else self.__NotfoundValues
         
-
 class AudioManager():
     def __init__(self, MaxVolume: int = 10, Default_Values: tuple = (5, 0)):
         self.setMaxVolume(MaxVolume)

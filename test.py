@@ -1,7 +1,6 @@
 from GameEngine import *
 from GameEngine import pygame as py
 
-
 Molt_Time = 1
 Molt_Screen = 2
 
@@ -11,10 +10,11 @@ FPS = 60
 
 DEF = GameManager(
 
-    window_resolution = screen_resolution,
+    # window_resolution = screen_resolution,
     fps = FPS,
     screen_molt = Molt_Screen,
-    time_molt = Molt_Time
+    time_molt = Molt_Time,
+    screen_num = 4
 
 )
 
@@ -27,8 +27,32 @@ def inizializza():
 
     showComands = True
     
-    dialogo = Dialogue(updateFunction=render, pos=(0, 0), debug=False, background="Yellow", text_color="Green", colorshadow="Black", shadowdistance=6, size_char=12, wordsperline=9, escapeFunction=exit)
-    timer = Timer(time = (0, 50), molt_sec = 1, myfunction=lambda: print("Vengo richiamato una volta sola"), color = "Red", reversed=False, removeEvents=True)
+    posy = 151
+    div = 0.8
+    
+    dialogo = Dialogue  (
+                            updateFunction=render, 
+                            pos=(0, posy), 
+                            offset_triangle=(-240, -10), 
+                            triangle_size = 16*div, 
+                            offset_text = (125, 10), offset = 4, 
+                            charmax=5000, wordsperline = 5, 
+                            debug=False, 
+                            background=["Dialogues/Dialoghi.png", div], 
+                            colorshadow="Black", 
+                            shadowdistance=6, 
+                            size_char= 10,
+                            vel_text= 3,
+                            escapeFunction=exit
+                        )
+    
+    Name = "Senex"
+    
+    dialogo.AddImage("Dialogues/Speakers/Characters/"+Name+".png", (35 * DEF.getScreenMolt(), (posy + 10) * DEF.getScreenMolt()), 2*div)
+    dialogo.AddLine(defaultText = Name, pos = (40 * DEF.getScreenMolt(), (posy + 53) * DEF.getScreenMolt()), alignment = "left", size = 10, color = "Black")
+    
+    
+    timer = Timer(time = (10, 0), molt_sec = 1, myfunction=lambda: print("Ciao Mondo"), color = "Green", reversed=True, removeEvents=True)
     testo = PrintLine(size=20, color="Black")
     
     Myinputs()
@@ -71,7 +95,7 @@ def conditions():
     if timer.IsOver():
         dialogo.Print("Esempio di testo")
         timer.AddSeconds(538)
-        timer.DePause()
+        timer.UnPause()
 
 def comands():
     global mainloop
