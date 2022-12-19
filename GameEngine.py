@@ -181,7 +181,11 @@ class GameManager():
             print(colored(("#53754d"), "DEBUG: \n\n"))
         return def_name
         
-        
+    def getListofScreenMultiplayers(self):
+        return self.__listofscreenmultiplayer
+    
+    def getListofScreenResolutions(self):
+        return self.__listofresolutions
         
     def __Log(self):
         self.__debug_pos = self.getScreenResolution()[0] - 135 * self.getScreenMolt(), 0
@@ -386,7 +390,7 @@ class GameManager():
                 
                 size = self.__debug_print.getLine().get_rect()
                 rect = pygame.Rect(self.__debug_pos[0], self.__debug_pos[1], size[2], ((self.__debug_distance_line[1]/2) * (self.__num_print + 1)) * 2)
-                pygame.draw.rect(self.getScreen(), self.__bg_debug, rect)
+                pygame.draw.rect(self.getScreen(), self.__bg_debug, rect, 0, 4)
                 self.__debug_print.Print()
             
             self.__debug_pos = (self.getScreenResolution()[0] - self.__debug_print.getLineSize()[0], 0)
@@ -1549,7 +1553,7 @@ shadowdistance = 2, bordercolor = "Black", borderwidth = 1
             if line.getPos()[1] + line.getLineSize()[1] < self.__pos[1] + self.__wh[1] * GE.getScreenMolt():
                 last_line = text_passed
                 self.__pressed = False
-                line.Print(text_passed)
+                line.Print(last_line)
             else:
                 self.__flag_new = True
                 
