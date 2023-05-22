@@ -9,8 +9,6 @@
 
 import pygame
 
-#TO DO add Player Component
-
 def RGBToHex(r, g, b):
     """
 
@@ -45,6 +43,37 @@ def hex2rgb(color):
     rgb = tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
     return rgb
 
+
+def text2rgb(color):
+    """
+# Text to RGB
+--------
+
+### Returns:
+    tuple[0:2]: int: 0 <--> 255
+"""
+    import matplotlib.colors as mcol
+    
+    rgb = mcol.to_rgb(color) if color in mcol.cnames.keys() else KeyError("This color doesn't exist") 
+    return rgb
+
+def text2hex(color):
+    """
+# Text to HEX
+--------
+
+### Returns:
+    str: #000000 <--> #FFFFFF
+"""
+    import matplotlib.colors as mcol
+    
+    rgb = mcol.to_hex(color) if color in mcol.cnames.keys() else KeyError("This color doesn't exist") 
+    return rgb
+
+def textcolor(color):
+    import matplotlib.colors as mcol
+    return True if color in mcol.cnames.keys() else False
+
 def colored(color, text):
     """
 # Colored
@@ -63,6 +92,34 @@ def colored(color, text):
     return "\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(rgb[0], rgb[1], rgb[2], text)
 
 
+def __clear(text, element):
+    t = str(text)
+    
+    els = [x for x in element]
+    for el in els:
+        t = "".join(t.split(el))
+    return t
+    
+
+def debug(*args, **kwargs):
+    import traceback
+    
+    try:
+        color = GE.DEBUG_COLOR
+    except NameError:
+        color = "#9fcc98"
+        
+    color2 = "#d4e066"
+    
+    (filename,line_number,function_name,text)=traceback.extract_stack()[-2]            
+    text1 = colored(color2, "\n - line " + str(line_number)) + " | "
+    (print(text1 + colored(color, __clear(args, "(),'"))) 
+    if len(kwargs) == 0 
+    else [print(text1 + colored(color, 
+                                __clear((__clear(key, "=")+": " + 
+                                            kwargs[key]), "(),'"))) for key in kwargs.keys()])
+
+
 GE = None
 AM = None
 Inputs = list()
@@ -76,7 +133,7 @@ class GameManager():
 ----------------------------------------------------------------------------------------
 - easy way to access a very common used function of pygame"""
     
-    def __init__(self, window_resolution: tuple = (0, 0), default_window_resolution: tuple = (0, 0), screen_num: int = 4, fps: int = 30, screen_molt: float = 1.0, time_molt = 1, minmax_res: tuple = (1, 2), actual_resmolt: int = 1):
+    def __init__(self, window_resolution: tuple = (0, 0), default_window_resolution: tuple = (0, 0), screen_num: int = 4, fps: int = 30, screen_molt: float = 1.0, time_molt = 1, minmax_res: tuple = (1, 2), actual_resmolt: int = 1, debug_color: str = "green"):
         """       
 # Defaults
 --------        
@@ -95,6 +152,7 @@ class GameManager():
         a = screen_molt
         b = time_molt
         
+        self.DEBUG_COLOR = RGBToHex(debug_color) if type(debug_color) == tuple else text2hex(debug_color) if not textcolor(debug_color) else debug_color 
         
         self.__screenNum = screen_num if screen_num != 0 else 1
         self.__dfWH = pygame.display.Info().current_w, pygame.display.Info().current_h
@@ -146,7 +204,7 @@ class GameManager():
         
         self.__mouse_pos = tuple
         
-        self.__Debug = False
+        self.Debug = False
         
         self.__list_textDebug = list()
         self.__printLine = list()
@@ -156,12 +214,14 @@ class GameManager():
         self.__num_print = 0
         self.__show_console = False
         
-        self.__myfunct = None
-        self.Event = None
+        self.__myfunct = dict()
         self.__line = ""
         self.Global_variables = dict()
         
         self.__Log()
+        
+        self.Event = None
+        self.Key_Pressed = False
         
         
     def __setClass(self, name):
@@ -210,14 +270,14 @@ class GameManager():
         
     
     def ShowConsole(self, flag: bool = None):
-        if self.__Debug:
+        if self.Debug:
             self.__show_console = flag if flag != None else not self.__show_console
     
     def ShowDebug(self, flag: bool = None):
-        self.__Debug = flag if flag != None else not self.__Debug
+        self.Debug = flag if flag != None else not self.Debug
         
     def __getStateDebug(self):
-        return self.__Debug
+        return self.Debug
     
     def __destroyLastElement(self):
         if len(self.__list_textDebug) > 0:
@@ -225,7 +285,7 @@ class GameManager():
                 self.__list_BannedElement.append(self.__line)
                 
     def isDebugging(self):
-        return self.__Debug
+        return self.Debug
     
     def ConsoleLog(self, text, text_color: str = None, backgroundColor: str = None, size: str = 5, haslife = True, timelife: float = 8.0):
         if self.__show_console:
@@ -243,8 +303,8 @@ class GameManager():
                 def_name = text[:text.find(',')].strip().split("text=")[1].strip("\"")
                 
             order = 0
-            if def_name in self.__list_textDebug:
-                order = self.__list_textDebug.index(def_name) + 1
+            if (def_name, line_number) in self.__list_textDebug:
+                order = self.__list_textDebug.index((def_name, line_number)) + 1
             
             if len(self.__delay_dis) >= order + 1: 
                 self.__delay_dis[order - 1] = Delay(timelife, self.__destroyLastElement)
@@ -287,7 +347,7 @@ class GameManager():
                             pos[1]))
             
             
-            line_number = "- line: " + str(line_number)
+            line_text = "- line: " + str(line_number)
             
             number_line = PrintLine(
                 
@@ -296,7 +356,7 @@ class GameManager():
                                 color = "#f9f931",
                                 size = size,
                                 shadowdistance= 4,
-                                defaultText = line_number,
+                                defaultText = line_text,
                                 alignment="left"
                             
                             )
@@ -309,22 +369,22 @@ class GameManager():
                 self.__num_print = len(self.__printLine)
             
             
-            if self.__list_textDebug.count(def_name) > 1 or def_name in self.__list_BannedElement:
+            if self.__list_textDebug.count((def_name, line_number)) > 1 or (def_name, line_number) in self.__list_BannedElement:
                 
-                if def_name in self.__list_textDebug:
-                    self.__printLine.pop(self.__list_textDebug.index(def_name))
-                    self.__list_seconds.pop(self.__list_textDebug.index(def_name))
-                    self.__list_textDebug.remove(def_name)
+                if (def_name, line_number) in self.__list_textDebug:
+                    self.__printLine.pop(self.__list_textDebug.index((def_name, line_number)))
+                    self.__list_seconds.pop(self.__list_textDebug.index((def_name, line_number)))
+                    self.__list_textDebug.remove((def_name, line_number))
             
-            elif self.__list_textDebug.count(def_name) <= 1:
-                self.__list_textDebug.append(def_name)
+            elif self.__list_textDebug.count((def_name, line_number)) <= 1:
+                self.__list_textDebug.append((def_name, line_number))
                 self.__printLine.append(line)
                 
                 self.__list_seconds.append([seconds, delay, haslife, number_line, line_number])
             
             
             if haslife:
-                if def_name in self.__list_textDebug:
+                if (def_name, line_number) in self.__list_textDebug:
                     self.__line = def_name
                     
                     for delay in self.__delay_dis:
@@ -424,8 +484,14 @@ class GameManager():
         return tuple(ris/divisor for ris in self.getScreenResolution())
     
     def CheckComands(self, funct: classmethod = None):
-        self.__myfunct = funct if funct != None else None
-    
+        import traceback, pygame
+        (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+        
+        def_name = text[:text.find('=')].strip().split("(")[1]
+        
+        if not def_name in self.__myfunct.keys():
+            self.__myfunct[def_name] = funct if funct != None else None
+
     def setFullScreen(self):
         self.__screen_molt = self.__screenNum - 1
         self.setMultipliers(screen_multiplier = self.__screenNum)
@@ -467,14 +533,26 @@ class GameManager():
         for event in pygame.event.get():
             self.Event = event
             
+            
+            
+            if len(list(self.__myfunct.items())) > 0:
+                
+                try:
+                    for function in list(self.__myfunct.values()):
+                        function()
+                except RuntimeError:
+                    pass
+            
             if event.type == pygame.KEYDOWN:
+                self.Key_Pressed = True
                 for input in Inputs:
                     functions = list(input.ReturnKeys().keys())
                     for func in functions:
                         input.Check(func, event.key)
             
-            if self.__myfunct != None:
-                self.__myfunct()
+            if event.type == pygame.KEYUP:
+                self.Key_Pressed = False
+            
         
     def getTime(self):
         return pygame.time.get_ticks()
@@ -694,6 +772,13 @@ class Flip_Flop():
             self.__min = 0
             return True
 
+
+
+__every_sec = Flip_Flop()
+def print_every_second(*args, **kwargs):
+    __every_sec.AfterTimes(lambda: print(*args, **kwargs), GE.getFps())
+
+
 class Delay():
     """ 
 
@@ -887,16 +972,16 @@ class Timer():
             value =  60 * GE.getFps()
             if self.__reversed:
 
-                self.__seconds -= (self.__decrement * GE.getDeltaTime()) / GE.getTimeMolt()
-                self.__cicles -= (self.__decrement * GE.getDeltaTime()) / GE.getTimeMolt()
+                self.__seconds -= self.__decrement * GE.getDeltaTime()
+                self.__cicles -= self.__decrement * GE.getDeltaTime()
 
                 if self.__seconds <= 0:
                     self.__seconds = value
                     self.__minutes -= 1
             else:
 
-                self.__seconds += (self.__decrement * GE.getDeltaTime()) / GE.getTimeMolt()
-                self.__cicles += (self.__decrement * GE.getDeltaTime()) / GE.getTimeMolt()
+                self.__seconds += self.__decrement * GE.getDeltaTime()
+                self.__cicles += self.__decrement * GE.getDeltaTime()
     
                 if self.__seconds > value:
                     self.__seconds = 0
@@ -981,17 +1066,19 @@ class Timer():
             # (in caso la somma e' superiore al minuto)
             d = (self.__getSeconds() + var) - min
             
-            self.__seconds += var
+            self.__seconds += var * GE.getFps()
 
             if self.__getSeconds() > min:
-                self.__seconds = d
+                self.__seconds = d * GE.getFps()
     
         else:
-            self.__seconds += secs
+            self.__seconds += secs * GE.getFps()
     
         if self.__getSeconds() > min + 1:
             self.__seconds = 0
 
+        self.__cicles = self.getTime()[0] * GE.getFps() * 60 + self.getTime()[1] * GE.getFps()
+        
         self.__CheckTimerText()
     
     def Stop(self):
@@ -1028,7 +1115,7 @@ class Timer():
         self.__font = font
 
     def __getSeconds(self):
-        return round(self.__seconds / (GE.getFps() / GE.getTimeMolt()), 2)
+        return round(self.__seconds / GE.getFps(), 2)
         
     def __getMinutes(self):
         return self.__minutes
@@ -1077,9 +1164,10 @@ class Timer():
 """
         return True if self.getTime() == v else False
 
-    def ActualState(self):
+    def ActualState(self, every_tick: bool = False):
         if self.__flag:
-            print("| Current Tick: %d | Function Tick: %d | Function: %s |" %(self.__cicles, self.__maxCicles, self.__mainfunction))
+            text = colored("#ffd723", "\tTimer -> ") + colored("#65ff3e","Current Tick: %d | Function Tick: %d | Function:%s |" %(self.__cicles, self.__maxCicles, str(self.__mainfunction).split("<")[1].rstrip(".").lstrip("function")))
+            print(text) if every_tick else print_every_second(text)
 
 class PrintLine():
     """ 
@@ -1356,7 +1444,7 @@ class Dialogue():
                 raise RecursionError(colored("#ff0000", "\nRecursionError: You need to call Dialogue() class in another function to work properly!"))
             
             
-            def comands():    
+            def dialogue_comands():    
                 if GE.Event.type == pygame.QUIT:
                     GE.Quit()
             
@@ -1398,7 +1486,7 @@ class Dialogue():
             if self.__show_flashing: self.__RenderTriangle()
             
             
-            GE.CheckComands(comands)
+            GE.CheckComands(dialogue_comands)
             GE.Update()
         
         self.__pressed = False
@@ -1443,7 +1531,7 @@ class Dialogue():
         self.__images.append([img, p])
         
     
-    def AddLine(self,**kwargs):
+    def AddLine(self, *args, **kwargs):
         """
 # AddLine
 ----------------------------------------------------------------------------------------
@@ -1459,7 +1547,7 @@ shadowdistance = 2, bordercolor = "Black", borderwidth = 1
 - showborder = False, showpoints=False, showcoords=False
         
         """
-        line = PrintLine(**kwargs)
+        line = PrintLine(*args, **kwargs)
         
         self.__lines.append(line)
 
@@ -1597,7 +1685,7 @@ class InputKeys():
         self.__NotfoundValues = []
         
         self.__debug = debug
-
+        
         if isglobal:
             Inputs.append(self)
         
@@ -1626,15 +1714,18 @@ class InputKeys():
 
         """
         key_pressed = pygame.key.name(key)
-        key_holded = True if holded else bool(pygame.key.get_pressed().count(1))
+        key_holded = True if holded else bool(pygame.key.get_pressed().count(True))
         
         import traceback
         
+        
         if not name.lower() in self.__NotfoundValues:
             self.__do = Do()
+        
+        if name.lower() in self.__dict.keys():    
+            cond = key_pressed in self.__dict[name.lower()] and key_holded
             
-        if name.lower() in self.__dict.keys():
-            if key_pressed in self.__dict[name.lower()] and key_holded:
+            if cond:
                 self.__functionDict[name.lower()]() if self.__functionDict[name.lower()] != None else 0
                 
                 if self.__debug:
@@ -1642,8 +1733,8 @@ class InputKeys():
                     c = "#6b4040"
                     print(colored(c, t))
                     GE.ConsoleLog(t, c)
-                return True
-            return False
+            
+            return cond
         else:
             (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
             def_name = text[:text.find('=')].strip()
@@ -1761,6 +1852,290 @@ class AudioManager():
         
     def getMaxVolume(self):
         return self.__MaxVolume
+
+
+class __Sprite():
+    def __init__(self):
+        self.__Sprites = dict()
+        self.__Names = dict()
+    
+    def newSprite(self, name: str = "Default"):
+        self.__Sprites[name] = dict()
+        
+        return self.Name(name)
+    
+    def Remove(self, name):    
+        import traceback
+        (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+    
+        
+        if name in self.__Sprites:
+            self.__Sprites.pop(name)
+        else:
+            print(colored("#faf676", "\nline "+str(line_number)+" | "+name+" --> The name of Sprite doesn't already exist"))
+        
+        if name in self.__Names:
+            self.__Names.pop(name)
+    
+    def Clear(self):
+        self.__Sprites.clear()
+        self.__Names.clear()
+    
+    def ReturnDict(self):
+        return self.__Sprites
+    
+    def Name(self, name: str = "Default"):
+        
+        if name in self.__Sprites:
+            if name not in self.__Names:
+                self.__Names[name] = self.__name(name, self.__Sprites)
+            return self.__Names[name]
+        else:
+            import traceback
+            (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+        
+            print(colored("#faf676", "\nline "+str(line_number)+" | "+name+" --> The name of Sprite doesn't exist"))
+        
+            return None
+        
+        
+    class __name():
+        def __init__(self, name: str = "Default", sprites: dict = {"Default":{}}):
+            
+            self.__speed_animations = 0.2
+            self.__actual_value = 0
+            self.__start_value_animation = 0.9
+
+            self.__Sprites = sprites
+            self.__Velocity = {"start_value": self.__start_value_animation, "value": self.__actual_value, "speed": self.__speed_animations}
+            self.__name = name
+            
+        def ReturnDict(self):
+            return self.__Sprites[self.__name]
+            
+        def SetAnimationSpeed(self, animation_speed: int = 4, start_value: float = 0.9):
+            self.__speed_animations = int(animation_speed) / GE.getFps() * GE.getTimeMolt() * GE.getDeltaTime()
+            self.__actual_value = 0
+            self.__start_value_animation = start_value
+            
+            self.__Velocity = {"start_value": self.__start_value_animation, "value": self.__actual_value, "speed": self.__speed_animations}
+            
+            
+        def AddToSpriteStates(self, states: list = ["up", "down", "left", "right"]):
+            if self.__name in self.__Sprites:
+                self.__Sprites[self.__name] = dict([(state, list()) for state in states])
+                
+            return self
+                
+        def LoadImages(self, name_state: str = "up", path: str = "directory/", convert_alpha: bool = False, scale: int = 1, flip_x: bool = False, flip_y: bool = False, num_range: int = None):
+            import os, re
+            
+            n_range = num_range
+            FileNames = os.listdir(path)
+
+            try:
+                FileNames.sort(key=lambda f: int(re.sub('\D', '', f)))
+            except:
+                FileNames.sort()
+                
+            sorted(FileNames)
+
+            files = []
+            for filename in FileNames:
+                if "." in filename:
+                    files.append(filename)
+                
+            files = files[:n_range]
+                
+            self.__Sprites[self.__name][name_state] =    [   
+                                                pygame.image.load(path + "/" + file).convert_alpha() if convert_alpha 
+                                                else pygame.image.load(path + "/" + file).convert() 
+                                                for file in files
+                                            ]
+            
+            
+            s = scale * GE.getScreenMolt()
+            self.__Sprites[self.__name][name_state] =    [   
+                                                pygame.transform.scale(img, (img.get_width() * s, img.get_height() * s))
+                                                for img in self.__Sprites[self.__name][name_state]
+                                            ]
+            
+            self.__Sprites[self.__name][name_state] =    [   
+                                                pygame.transform.flip(img, flip_x, flip_y)
+                                                for img in self.__Sprites[self.__name][name_state]
+                                            ]
+            
+            return (name_state, files)
+        
+        def Animate(self, name_state: str = "up"):
+            
+            self.__Velocity["value"] += self.__Velocity["speed"]    
+            
+            if int(self.__Velocity["value"]) >= len(self.__Sprites[self.__name][name_state]):
+                self.__Velocity["value"] = 0
+            
+            return self.__Sprites[self.__name][name_state][int(self.__Velocity["value"])]
+        
+        def ReturnStates(self):
+            return tuple(self.__Sprites[self.__name].keys())
+        
+        def Remove(self, state):    
+            import traceback
+            (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+        
+            if state in self.__Sprites[self.__name]:
+                self.__Sprites[self.__name].pop(state)
+            else:
+                print(colored("#faf676", "\nline "+str(line_number)+" | "+state+" --> The State of Sprite ( "+self.__name+ ") doesn't already exist"))
+    
+        def Clear(self, state):
+            self.__Sprites[state].clear()
+
+
+Sprites = __Sprite()
+
+class Player():
+    def __init__(self, pos: tuple = (0, 0), speed: tuple = (5, 10), background_color: str = "Black", show_background: bool = True, Name_sprite: str = None, keyinput: classmethod = InputKeys(False), size: tuple = (0, 0), mesh_collision: str = "simple" or "advanced", hitbox: tuple = None,  show_mesh: bool = False):
+        self.position = pygame.math.Vector2(pos)
+        self.default_pos = self.position
+        
+        self.speed = speed
+        self.default_speed = speed
+        
+        self.direction_movement = pygame.math.Vector2()
+        
+        self.default_size = size
+        self.size = size
+        self.width, self.height = size
+        self.hitbox = hitbox
+        
+        self.__background_color = background_color
+        self.__show_background = show_background
+        
+        self.__KeyInput = keyinput
+                
+        self.__typeofmesh = mesh_collision.lower()
+        self.__name_of_sprite = Name_sprite
+        self.__show_mesh = show_mesh
+        
+        self.__buttons = dict()
+        
+        self.meshIsActive = False
+        
+        self.__current_direction = list(Sprites.Name(self.__name_of_sprite).ReturnDict().keys())[1]
+        self.setMesh()
+
+    def setMesh(self):
+        sprite = Sprites.Name(self.__name_of_sprite).ReturnDict()
+        
+        if self.default_size == (0, 0) and not self.meshIsActive:
+            self.meshIsActive = True
+            self.default_size = sprite[list(sprite.keys())[0]][0].get_size()
+        
+        self.size = tuple([val * GE.getScreenMolt() for val in self.default_size])
+        self.width, self.height = self.size
+        
+        if self.hitbox == None: self.hitbox = (0, 0, *self.size)
+        
+        if self.__typeofmesh == "advanced":
+            self.__rect =   {
+                                "center": pygame.Rect(self.hitbox[0] + self.position.x, self.hitbox[1] + self.position.y, 
+                                    self.hitbox[2], self.hitbox[3]), 
+                            
+                                "top": pygame.Rect(self.hitbox[0] + self.position.x, self.hitbox[1] - self.hitbox[3] + self.position.y, 
+                                    self.hitbox[2], self.hitbox[3]),
+                                
+                                "bottom": pygame.Rect(self.hitbox[0] + self.position.x, self.hitbox[1] + self.hitbox[3] + self.position.y, 
+                                    self.hitbox[2], self.hitbox[3]),
+                                
+                                "left": pygame.Rect(self.hitbox[0] - self.hitbox[2] + self.position.x, self.hitbox[1] + self.position.y, 
+                                    self.hitbox[2], self.hitbox[3]),
+                                
+                                "right": pygame.Rect(self.hitbox[0] + self.hitbox[2] + self.position.x, self.hitbox[1] + self.position.y, 
+                                    self.hitbox[2], self.hitbox[3])
+                                
+                            }  
+        else:
+            self.__rect =   {
+                                "center": pygame.Rect(self.hitbox[0] + self.position.x, self.hitbox[1] + self.position.y, 
+                                    self.hitbox[2], self.hitbox[3])
+                            }
+        
+        if self.__name_of_sprite != None: 
+            self.__Sprite = Sprites.Name(self.__name_of_sprite)
+            self.__buttons = {key: False  for key in self.__Sprite.ReturnStates()}
+        else: self.__Sprite = None
+        
+        self.Mesh = self.__rect
+        
+    
+    def __MovementManagement(self, direction = None):
+        
+        if direction.get("up", False):
+            self.direction_movement.y = -1
+        elif direction.get("down", False):
+            self.direction_movement.y =  1
+        else:
+            self.direction_movement.y =  0
+            
+        if direction.get("left", False):
+            self.direction_movement.x = -1
+        elif direction.get("right", False):
+            self.direction_movement.x =  1
+        else:
+            self.direction_movement.x =  0
+            
+        if self.direction_movement.magnitude() != 0:
+            self.direction_movement = self.direction_movement.normalize()
+        
+        self.position += self.direction_movement * self.speed[0]
+    
+    def update(self):
+        self.setMesh()
+        
+        if self.__show_background:
+            pygame.draw.rect(GE.getScreen(), self.__background_color, self.Mesh["center"], GE.getIntScreenMolt())
+                
+        if self.__Sprite != None:
+            
+            def player_comands():
+                for key in self.__Sprite.ReturnStates():
+                    if GE.Event.type == pygame.KEYDOWN:
+                        if not self.__buttons.get(key, True):
+                            self.__buttons[key] = self.__KeyInput.Check(key, GE.Event.key)
+                        
+                    if GE.Event.type == pygame.KEYUP:
+                        if self.__buttons.get(key, None) == True:
+                            self.__buttons[key] = False
+                            
+                    debug(self.__buttons)
+                        
+                        
+            GE.CheckComands(player_comands)
+            
+            flag = False
+            movement = None
+            
+            for value in list(self.__buttons.keys()):
+                if value in self.__Sprite.ReturnStates() and self.__buttons[value]:
+                    flag = True
+                    movement = value
+            
+            c = self.__Sprite.Animate(movement) if flag else self.__Sprite.ReturnDict()[self.__current_direction][0]
+            
+            self.__MovementManagement(direction = self.__buttons)
+            
+            GE.getScreen().blit(c, self.position)
+            
+            if self.__show_mesh:
+                if self.__typeofmesh != "advanced":
+                    pygame.draw.rect(GE.getScreen(), self.__background_color, self.Mesh["center"], GE.getIntScreenMolt())
+                    
+                else:
+                    for key in self.Mesh:
+                        pygame.draw.rect(GE.getScreen(), "Red", self.Mesh[key], GE.getIntScreenMolt())
+            
+
 
 if __name__ != "__main__":
     print(colored(("#87CEEB"),"\r\nGameEngine 1.0 - Created by Senex03 || Welcome!!"))
